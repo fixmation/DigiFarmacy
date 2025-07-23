@@ -7,16 +7,6 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 
-// Scroll to top utility
-const ScrollToTop = () => {
-  const { pathname } = useLocation();
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [pathname]);
-
-  return null;
-};
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import AdminAuth from "./pages/AdminAuth";
@@ -34,16 +24,27 @@ import Workflow from "./pages/Workflow";
 
 const queryClient = new QueryClient();
 
+// Scroll to top utility
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [pathname]);
+
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <AuthProvider>
         <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <ScrollToTop />
-          <Routes>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <ScrollToTop />
+            <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin-auth" element={<AdminAuth />} />
