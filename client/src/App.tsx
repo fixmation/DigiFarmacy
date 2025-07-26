@@ -10,16 +10,16 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import AdminAuth from "./pages/AdminAuth";
-import LabBooking from "./pages/LabBooking";
-import PDPA from "./pages/PDPA";
-import TermsOfService from "./pages/TermsOfService";
-import HowToUse from "./pages/HowToUse";
 import Contact from "./pages/Contact";
+import PDPA from "./pages/PDPA";
+import DrugInfo from "./pages/DrugInfo";
+import HowToUse from "./pages/HowToUse";
+import LabBooking from "./pages/LabBooking";
 import NotFound from "./pages/NotFound";
 import PrescriptionScanner from "./pages/PrescriptionScanner";
-import VoiceAssistant from "./pages/VoiceAssistant";
-import DrugInfo from "./pages/DrugInfo";
 import Privacy from "./pages/Privacy";
+import TermsOfService from "./pages/TermsOfService";
+import VoiceAssistant from "./pages/VoiceAssistant";
 import Workflow from "./pages/Workflow";
 
 const queryClient = new QueryClient();
@@ -45,23 +45,21 @@ const App = () => (
           <BrowserRouter>
             <ScrollToTop />
             <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/admin-auth" element={<AdminAuth />} />
-            <Route path="/lab-booking" element={<LabBooking />} />
-            <Route path="/pharmacies" element={<Index />} />
-            <Route path="/prescription-scanner" element={<PrescriptionScanner />} />
-            <Route path="/voice-assistant" element={<VoiceAssistant />} />
-            <Route path="/drug-info" element={<DrugInfo />} />
-            <Route path="/drug-information" element={<DrugInfo />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/pdpa" element={<PDPA />} />
-            <Route path="/terms" element={<TermsOfService />} />
-            <Route path="/how-to-use" element={<HowToUse />} />
-            <Route path="/workflow" element={<Workflow />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/admin-auth" element={<AdminAuth />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/pdpa" element={<PDPA />} />
+              <Route path="/drug-info" element={<DrugInfo />} />
+              <Route path="/how-to-use" element={<HowToUse />} />
+              <Route path="/lab-booking" element={<LabBooking />} />
+              <Route path="/prescription-scanner" element={<PrescriptionScanner />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/voice-assistant" element={<VoiceAssistant />} />
+              <Route path="/workflow" element={<Workflow />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
         </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
