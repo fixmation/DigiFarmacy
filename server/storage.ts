@@ -71,6 +71,7 @@ export interface IStorage {
   getPrescription(id: string): Promise<Prescription | null>;
   getPrescriptionsByPharmacy(pharmacyId: string): Promise<Prescription[]>;
   updatePrescription(id: string, updates: Partial<Prescription>): Promise<Prescription | null>;
+  deletePrescription(id: string): Promise<boolean>;
   listPrescriptions(): Promise<Prescription[]>;
 
   // Prescription Medications
@@ -93,32 +94,23 @@ export class MemStorage implements IStorage {
   private prescriptionMedications: PrescriptionMedication[] = [];
 
   constructor() {
-    // Initialize with sample data for Sri Lankan healthcare system
     this.initializeSampleData();
   }
 
   private initializeSampleData() {
-    // Sample pharmacies in Sri Lanka
-    const samplePharmacies: PharmacyDetails[] = [
+    // Add sample pharmacies across Sri Lanka
+    this.pharmacies = [
       {
-        id: 'pharmacy-001',
-        userId: 'user-pharmacy-001',
-        businessName: 'Osusala Pharmacy - Colombo',
-        registrationNumber: 'PH-COL-001',
-        address: 'No. 123, Galle Road, Colombo 03',
-        latitude: '6.9271',
-        longitude: '79.8612',
-        contactPhone: '+94 11 234 5678',
-        contactEmail: 'info@osusala-colombo.lk',
-        operatingHours: {
-          monday: { open: '08:00', close: '22:00' },
-          tuesday: { open: '08:00', close: '22:00' },
-          wednesday: { open: '08:00', close: '22:00' },
-          thursday: { open: '08:00', close: '22:00' },
-          friday: { open: '08:00', close: '22:00' },
-          saturday: { open: '08:00', close: '20:00' },
-          sunday: { open: '09:00', close: '18:00' }
-        },
+        id: "pharmacy-001",
+        userId: "user-pharmacy-001",
+        businessName: "New Cross Hospital Pharmacy",
+        registrationNumber: "PH001",
+        address: "357 Galle Road, Colombo 03",
+        latitude: "6.9271",
+        longitude: "79.8612",
+        contactPhone: "+94112574757",
+        contactEmail: "pharmacy@newcross.lk",
+        operatingHours: { "monday": "8:00-20:00", "tuesday": "8:00-20:00", "wednesday": "8:00-20:00", "thursday": "8:00-20:00", "friday": "8:00-20:00", "saturday": "8:00-18:00", "sunday": "9:00-17:00" },
         pharmacistCertificateUrl: null,
         businessRegistrationUrl: null,
         verificationNotes: null,
@@ -128,24 +120,16 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(),
       },
       {
-        id: 'pharmacy-002',
-        userId: 'user-pharmacy-002',
-        businessName: 'Guardian Pharmacy - Kandy',
-        registrationNumber: 'PH-KAN-002',
-        address: 'No. 45, Peradeniya Road, Kandy',
-        latitude: '7.2906',
-        longitude: '80.6337',
-        contactPhone: '+94 81 223 4567',
-        contactEmail: 'kandy@guardian.lk',
-        operatingHours: {
-          monday: { open: '08:30', close: '21:00' },
-          tuesday: { open: '08:30', close: '21:00' },
-          wednesday: { open: '08:30', close: '21:00' },
-          thursday: { open: '08:30', close: '21:00' },
-          friday: { open: '08:30', close: '21:00' },
-          saturday: { open: '08:30', close: '19:00' },
-          sunday: { open: '09:00', close: '17:00' }
-        },
+        id: "pharmacy-002", 
+        userId: "user-pharmacy-002",
+        businessName: "Nawaloka Pharmacy",
+        registrationNumber: "PH002",
+        address: "23 Deshamanya H. K. Dharmadasa Mawatha, Colombo 02",
+        latitude: "6.9147",
+        longitude: "79.8525",
+        contactPhone: "+94112544444",
+        contactEmail: "pharmacy@nawaloka.com",
+        operatingHours: { "monday": "7:00-22:00", "tuesday": "7:00-22:00", "wednesday": "7:00-22:00", "thursday": "7:00-22:00", "friday": "7:00-22:00", "saturday": "7:00-22:00", "sunday": "8:00-20:00" },
         pharmacistCertificateUrl: null,
         businessRegistrationUrl: null,
         verificationNotes: null,
@@ -156,54 +140,20 @@ export class MemStorage implements IStorage {
       }
     ];
 
-    // Sample laboratories in Sri Lanka
-    const sampleLaboratories: LaboratoryDetails[] = [
+    // Add sample laboratories
+    this.laboratories = [
       {
-        id: 'lab-001',
-        userId: 'user-lab-001',
-        businessName: 'Asiri Central Hospital Laboratory',
-        registrationNumber: 'LAB-COL-001',
-        address: 'No. 114, Norris Canal Road, Colombo 10',
-        contactPhone: '+94 11 466 5500',
-        contactEmail: 'lab@asiri.lk',
-        operatingHours: {
-          monday: { open: '06:00', close: '20:00' },
-          tuesday: { open: '06:00', close: '20:00' },
-          wednesday: { open: '06:00', close: '20:00' },
-          thursday: { open: '06:00', close: '20:00' },
-          friday: { open: '06:00', close: '20:00' },
-          saturday: { open: '06:00', close: '16:00' },
-          sunday: { open: '08:00', close: '14:00' }
-        },
-        servicesOffered: ['Blood Tests', 'Urine Tests', 'X-Ray', 'ECG', 'Home Collection'],
+        id: "lab-001",
+        userId: "user-lab-001",
+        businessName: "Asiri Central Hospital Laboratory",
+        registrationNumber: "LAB001",
+        address: "114 Norris Canal Road, Colombo 10",
+        contactPhone: "+94112665500",
+        contactEmail: "lab@asiri.lk",
+        operatingHours: { "monday": "6:00-18:00", "tuesday": "6:00-18:00", "wednesday": "6:00-18:00", "thursday": "6:00-18:00", "friday": "6:00-18:00", "saturday": "6:00-16:00", "sunday": "7:00-12:00" },
+        servicesOffered: ["Blood Tests", "Urine Tests", "X-Rays", "ECG", "Ultrasound"],
         homeVisitAvailable: true,
-        homeVisitCharges: '2500.00',
-        verifiedAt: new Date(),
-        verifiedBy: null,
-        verificationNotes: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'lab-002',
-        userId: 'user-lab-002',
-        businessName: 'Nawaloka Laboratory Services',
-        registrationNumber: 'LAB-COL-002',
-        address: 'No. 23, Deshamanya H. K. Dharmadasa Mawatha, Colombo 02',
-        contactPhone: '+94 11 544 4444',
-        contactEmail: 'lab@nawaloka.com',
-        operatingHours: {
-          monday: { open: '05:30', close: '21:00' },
-          tuesday: { open: '05:30', close: '21:00' },
-          wednesday: { open: '05:30', close: '21:00' },
-          thursday: { open: '05:30', close: '21:00' },
-          friday: { open: '05:30', close: '21:00' },
-          saturday: { open: '05:30', close: '18:00' },
-          sunday: { open: '07:00', close: '16:00' }
-        },
-        servicesOffered: ['Complete Blood Count', 'Lipid Profile', 'Liver Function Tests', 'Kidney Function Tests', 'Diabetes Tests', 'Home Collection'],
-        homeVisitAvailable: true,
-        homeVisitCharges: '3000.00',
+        homeVisitCharges: "2500.00",
         verifiedAt: new Date(),
         verifiedBy: null,
         verificationNotes: null,
@@ -211,9 +161,6 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(),
       }
     ];
-
-    this.pharmacies = samplePharmacies;
-    this.laboratories = sampleLaboratories;
   }
 
   // User methods (legacy support)
@@ -261,10 +208,10 @@ export class MemStorage implements IStorage {
       id: profile.id || `profile_${Date.now()}`,
       email: profile.email,
       fullName: profile.fullName,
-      phone: profile.phone,
-      role: profile.role || 'customer',
-      status: profile.status || 'pending',
-      preferredLanguage: profile.preferredLanguage || 'en',
+      phone: profile.phone || null,
+      role: "customer" as any,
+      status: "pending" as any,
+      preferredLanguage: "en" as any,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -292,24 +239,24 @@ export class MemStorage implements IStorage {
     return [...this.profiles];
   }
 
-  // Pharmacy methods
+  // Simplified pharmacy methods
   async createPharmacyDetails(pharmacy: InsertPharmacyDetails): Promise<PharmacyDetails> {
     const newPharmacy: PharmacyDetails = {
       id: `pharmacy_${Date.now()}`,
-      userId: pharmacy.userId,
+      userId: null,
       businessName: pharmacy.businessName,
       registrationNumber: pharmacy.registrationNumber,
       address: pharmacy.address,
-      latitude: pharmacy.latitude,
-      longitude: pharmacy.longitude,
-      contactPhone: pharmacy.contactPhone,
-      contactEmail: pharmacy.contactEmail,
-      operatingHours: pharmacy.operatingHours,
-      pharmacistCertificateUrl: pharmacy.pharmacistCertificateUrl,
-      businessRegistrationUrl: pharmacy.businessRegistrationUrl,
-      verificationNotes: pharmacy.verificationNotes,
-      verifiedAt: pharmacy.verifiedAt,
-      verifiedBy: pharmacy.verifiedBy,
+      latitude: null,
+      longitude: null,
+      contactPhone: null,
+      contactEmail: null,
+      operatingHours: null,
+      pharmacistCertificateUrl: null,
+      businessRegistrationUrl: null,
+      verificationNotes: null,
+      verifiedAt: null,
+      verifiedBy: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -337,23 +284,23 @@ export class MemStorage implements IStorage {
     return [...this.pharmacies];
   }
 
-  // Laboratory methods
+  // Simplified laboratory methods
   async createLaboratoryDetails(laboratory: InsertLaboratoryDetails): Promise<LaboratoryDetails> {
     const newLaboratory: LaboratoryDetails = {
       id: `lab_${Date.now()}`,
-      userId: laboratory.userId,
+      userId: null,
       businessName: laboratory.businessName,
       registrationNumber: laboratory.registrationNumber,
       address: laboratory.address,
-      contactPhone: laboratory.contactPhone,
-      contactEmail: laboratory.contactEmail,
-      operatingHours: laboratory.operatingHours,
-      servicesOffered: laboratory.servicesOffered,
-      homeVisitAvailable: laboratory.homeVisitAvailable || false,
-      homeVisitCharges: laboratory.homeVisitCharges,
-      verifiedAt: laboratory.verifiedAt,
-      verifiedBy: laboratory.verifiedBy,
-      verificationNotes: laboratory.verificationNotes,
+      contactPhone: null,
+      contactEmail: null,
+      operatingHours: null,
+      servicesOffered: null,
+      homeVisitAvailable: null,
+      homeVisitCharges: null,
+      verifiedAt: null,
+      verifiedBy: null,
+      verificationNotes: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -381,7 +328,7 @@ export class MemStorage implements IStorage {
     return [...this.laboratories];
   }
 
-  // Lab Booking methods
+  // Simplified lab booking methods
   async createLabBooking(booking: InsertLabBooking): Promise<LabBooking> {
     const newBooking: LabBooking = {
       id: `booking_${Date.now()}`,
@@ -392,11 +339,8 @@ export class MemStorage implements IStorage {
       serviceType: booking.serviceType,
       preferredDate: booking.preferredDate,
       preferredTime: booking.preferredTime,
-      specialInstructions: booking.specialInstructions,
-      status: booking.status || 'pending',
-      totalAmount: booking.totalAmount,
-      commissionAmount: booking.commissionAmount,
-      bookingDate: new Date(),
+      specialInstructions: null,
+      status: "pending" as any,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -432,23 +376,17 @@ export class MemStorage implements IStorage {
     return [...this.labBookings];
   }
 
-  // Commission Transaction methods
+  // Simplified commission transaction methods
   async createCommissionTransaction(transaction: InsertCommissionTransaction): Promise<CommissionTransaction> {
     const newTransaction: CommissionTransaction = {
       id: `commission_${Date.now()}`,
-      type: transaction.type,
-      amount: transaction.amount,
-      platformCommission: transaction.platformCommission,
-      providerEarnings: transaction.providerEarnings,
-      pharmacyId: transaction.pharmacyId,
-      laboratoryId: transaction.laboratoryId,
-      prescriptionId: transaction.prescriptionId,
-      labBookingId: transaction.labBookingId,
-      status: transaction.status || 'pending',
-      description: transaction.description,
+      pharmacyId: null,
+      laboratoryId: null,
+      prescriptionId: null,
+      amountLkr: "0.00",
+      description: null,
+      status: "pending" as any,
       transactionDate: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
     };
     this.commissionTransactions.push(newTransaction);
     return newTransaction;
@@ -470,20 +408,20 @@ export class MemStorage implements IStorage {
     return [...this.commissionTransactions];
   }
 
-  // Prescription methods
+  // Simplified prescription methods
   async createPrescription(prescription: InsertPrescription): Promise<Prescription> {
     const newPrescription: Prescription = {
       id: `prescription_${Date.now()}`,
-      pharmacyId: prescription.pharmacyId,
-      customerName: prescription.customerName,
-      contactPhone: prescription.contactPhone,
-      prescriptionImageUrl: prescription.prescriptionImageUrl,
-      aiAnalysisResult: prescription.aiAnalysisResult,
-      status: prescription.status || 'pending',
-      totalAmount: prescription.totalAmount,
-      commissionAmount: prescription.commissionAmount,
-      notes: prescription.notes,
-      uploadDate: new Date(),
+      customerId: null,
+      pharmacyId: null,
+      imageUrl: prescription.imageUrl,
+      status: "pending" as any,
+      ocrRawText: null,
+      ocrConfidence: null,
+      totalAmountLkr: null,
+      serviceFee: null,
+      notes: null,
+      processedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -507,26 +445,33 @@ export class MemStorage implements IStorage {
     return this.prescriptions[prescriptionIndex];
   }
 
+  async deletePrescription(id: string): Promise<boolean> {
+    const prescriptionIndex = this.prescriptions.findIndex(prescription => prescription.id === id);
+    if (prescriptionIndex === -1) return false;
+    
+    this.prescriptions.splice(prescriptionIndex, 1);
+    return true;
+  }
+
   async listPrescriptions(): Promise<Prescription[]> {
     return [...this.prescriptions];
   }
 
-  // Prescription Medication methods
+  // Simplified prescription medication methods
   async createPrescriptionMedication(medication: InsertPrescriptionMedication): Promise<PrescriptionMedication> {
     const newMedication: PrescriptionMedication = {
       id: `medication_${Date.now()}`,
-      prescriptionId: medication.prescriptionId,
+      prescriptionId: null,
       medicationName: medication.medicationName,
-      dosage: medication.dosage,
-      frequency: medication.frequency,
-      duration: medication.duration,
-      quantity: medication.quantity,
-      unitPrice: medication.unitPrice,
-      totalPrice: medication.totalPrice,
-      availability: medication.availability || 'available',
-      alternativeSuggestion: medication.alternativeSuggestion,
+      dosage: null,
+      frequency: null,
+      duration: null,
+      quantity: null,
+      unitPrice: null,
+      totalPrice: null,
+      verified: null,
+      confidenceScore: null,
       createdAt: new Date(),
-      updatedAt: new Date(),
     };
     this.prescriptionMedications.push(newMedication);
     return newMedication;
@@ -544,7 +489,7 @@ export class MemStorage implements IStorage {
     const medicationIndex = this.prescriptionMedications.findIndex(medication => medication.id === id);
     if (medicationIndex === -1) return null;
     
-    this.prescriptionMedications[medicationIndex] = { ...this.prescriptionMedications[medicationIndex], ...updates, updatedAt: new Date() };
+    this.prescriptionMedications[medicationIndex] = { ...this.prescriptionMedications[medicationIndex], ...updates };
     return this.prescriptionMedications[medicationIndex];
   }
 
