@@ -20,6 +20,19 @@ import {
   type InsertUser
 } from "@shared/schema";
 
+export interface MedicineBatch {
+  id: string;
+  gtin: string;
+  batchId: string;
+  medicineName: string;
+  expiryDate: Date;
+  stockCount: number;
+  costPrice: number;
+  sellingPrice: number;
+  isPromotional: boolean;
+  location: string;
+}
+
 // Database storage interface
 export interface IStorage {
   // Users (legacy support)
@@ -80,6 +93,11 @@ export interface IStorage {
   getPrescriptionMedicationsByPrescription(prescriptionId: string): Promise<PrescriptionMedication[]>;
   updatePrescriptionMedication(id: string, updates: Partial<PrescriptionMedication>): Promise<PrescriptionMedication | null>;
   deletePrescriptionMedication(id: string): Promise<boolean>;
+  
+  // Medicine Batches
+  getRotationNeededBatches(minDays: number, maxDays: number): Promise<MedicineBatch[]>;
+  getExpiringBatches(daysUntilExpiry: number): Promise<MedicineBatch[]>;
+  updateBatchForPromotion(batchId: string, updates: Partial<MedicineBatch>): Promise<MedicineBatch | null>;
 }
 
 // In-memory storage implementation
@@ -186,6 +204,39 @@ export class MemStorage implements IStorage {
         createdAt: new Date(),
         updatedAt: new Date(),
       }
+    ];
+    // Add sample medicine batches
+    this.medicineBatches = [
+      // A batch that is already expired
+      {
+        id: 'batch_001', gtin: '67890123456789', batchId: 'EXP001', medicineName: 'Expired Med A',
+        expiryDate: new Date(new Date().setDate(new Date().getDate() - 10)),
+        stockCount: 50, costPrice: 80, sellingPrice: 100, isPromotional: false, location: 'Shelf C-1'
+      },
+      // A batch expiring in 30 days
+      {
+        id: 'batch_002', gtin: '78901234567890', batchId: 'NEAR_EXP002', medicineName: 'Amlodipine 5mg',
+        expiryDate: new Date(new Date().setDate(new Date().getDate() + 30)),
+        stockCount: 120, costPrice: 150, sellingPrice: 180, isPromotional: false, location: 'Shelf B-4'
+      },
+      // A batch expiring in 90 days (will be picked up by the new rotation job)
+      {
+        id: 'batch_003', gtin: '89012345678901', batchId: 'GOOD_EXP003', medicineName: 'Metformin 500mg',
+        expiryDate: new Date(new Date().setDate(new Date().getDate() + 90)),
+        stockCount: 300, costPrice: 50, sellingPrice: 60, isPromotional: false, location: 'Shelf A-1'
+      },
+      // Another batch expiring in 45 days
+      {
+        id: 'batch_004', gtin: '90123456789012', batchId: 'NEAR_EXP004', medicineName: 'Paracetamol 500mg',
+        expiryDate: new Date(new Date().setDate(new Date().getDate() + 45)),
+        stockCount: 500, costPrice: 20, sellingPrice: 25, isPromotional: false, location: 'Shelf D-8'
+      },
+        // A batch expiring in 75 days (should be picked up for rotation)
+      {
+        id: 'batch_005', gtin: '12345678901234', batchId: 'ROTATE_ME_005', medicineName: 'Lisinopril 10mg',
+        expiryDate: new Date(new Date().setDate(new Date().getDate() + 75)),
+        stockCount: 250, costPrice: 90, sellingPrice: 110, isPromotional: false, location: 'Shelf F-2'
+      },
     ];
   }
 
@@ -536,11 +587,11 @@ export class MemStorage implements IStorage {
     maxThresholdDate.setDate(maxThresholdDate.getDate() + maxDays);
 
     // Find batches expiring strictly after minDays and up to/including maxDays
-    return mockMedicineBatches.filter(batch =>
+    return this.medicineBatches.filter(batch =>
       batch.expiryDate > minThresholdDate &&
       batch.expiryDate <= maxThresholdDate
     );
-  },
+  }
   
   async getExpiringBatches(daysUntilExpiry: number): Promise<MedicineBatch[]> {
     const thresholdDate = new Date();
@@ -551,15 +602,15 @@ export class MemStorage implements IStorage {
       batch.expiryDate > new Date() && // Ensure it's not already expired
       !batch.isPromotional // Only pick up items that are not already promotional
     );
-  },
+  }
 
   async updateBatchForPromotion(batchId: string, updates: Partial<MedicineBatch>): Promise<MedicineBatch | null> {
     const batchIndex = this.medicineBatches.findIndex(b => b.id === batchId);
     if (batchIndex === -1) {
       return null;
     }
-    mockMedicineBatches[batchIndex] = { ...mockMedicineBatches[batchIndex], ...updates };
-    return mockMedicineBatches[batchIndex];
+    this.medicineBatches[batchIndex] = { ...this.medicineBatches[batchIndex], ...updates };
+    return this.medicineBatches[batchIndex];
   }
 }
 

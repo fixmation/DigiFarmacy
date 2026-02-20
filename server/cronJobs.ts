@@ -2,9 +2,8 @@
  * @fileoverview Cron job service to automate the handling of expiring medicine batches.
  * This service runs once every 24 hours.
  */
-import cron from 'node-cron';
 import { storage } from './storage'; // Assuming storage handles DB interactions
-import { DrizzleClient } from './db';
+const cron = require('node-cron');
 
 // --- Type Definitions ---
 interface MedicineBatch {
@@ -62,7 +61,7 @@ const calculateFlashSalePrice = (sellingPrice: number): number => {
 /**
  * A cron job function to handle stock rotation for items expiring soon (61-90 days).
  */
-export const checkRotationAutomation = async (db: DrizzleClient) => {
+export const checkRotationAutomation = async () => {
   console.log(`[${new Date().toISOString()}] Running Stock Rotation Cron Job (FEFO)...`);
 
   try {
@@ -96,11 +95,10 @@ export const checkRotationAutomation = async (db: DrizzleClient) => {
 /**
  * The main cron job function. It finds expiring batches and processes them for flash sale (< 60 days).
  */
-export const checkExpiryAutomation = async (db: DrizzleClient) => {
+export const checkExpiryAutomation = async () => {
   console.log(`[${new Date().toISOString()}] Running Flash Sale Automation Cron Job...`);
 
   try {
-    // 1. Query the database for medicine batches expiring in the next 60 days
     // This is a simulated call; you would replace it with your actual Drizzle query
     const expiringBatches = await storage.getExpiringBatches(60);
     
@@ -154,16 +152,16 @@ export const checkExpiryAutomation = async (db: DrizzleClient) => {
 /**
  * Schedules all cron jobs for the application.
  */
-export const scheduleExpiryAutomation = (db: DrizzleClient) => {
+export const scheduleExpiryAutomation = () => {
   // Schedule 1: Flash sale for items expiring in < 60 days. Runs at 1:00 AM.
-  cron.schedule('0 1 * * *', () => checkExpiryAutomation(db), {
+  cron.schedule('0 1 * * *', () => checkExpiryAutomation(), {
     scheduled: true,
     timezone: "Asia/Colombo"
   });
   console.log('Scheduled Flash Sale Automation job to run every 24 hours at 1:00 AM (Asia/Colombo).');
 
   // Schedule 2: Stock rotation warning for items expiring in 61-90 days. Runs at 2:00 AM.
-  cron.schedule('0 2 * * *', () => checkRotationAutomation(db), {
+  cron.schedule('0 2 * * *', () => checkRotationAutomation(), {
     scheduled: true,
     timezone: "Asia/Colombo"
   });

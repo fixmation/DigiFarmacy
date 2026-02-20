@@ -3,14 +3,15 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { storage } from "./storage";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import path from 'path'; // Add this line
 import { createServer, type Server } from "http";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
-import { DrizzleClient, createDrizzleClient } from "./db";
-import { scheduleExpiryAutomation } from './src/cronJobs';
+import { registerRoutes } from "./routes";
+import { scheduleExpiryAutomation } from './cronJobs';
+import { storage } from './storage';
+import { log } from "console";
+import { setupVite } from "./vite";
 
 const app = express();
 app.use(express.json());
@@ -34,12 +35,11 @@ app.use(passport.session());
 passport.use(
   new LocalStrategy(async (username, password, done) => {
     try {
-      // For now, we'll just find a user by email (username)
-      // and not check the password. In a real app, you'd hash
-      // and compare passwords.
+      // In a real application, you should verify the password.
+      // For this demo, we'll just look up the user.
       const user = await storage.getProfileByEmail(username);
       if (!user) {
-        return done(null, false, { message: "Incorrect username." });
+        return done(null, false, { message: 'Incorrect username.' });
       }
       return done(null, user);
     } catch (err) {
@@ -91,38 +91,99 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(express.static(path.join(__dirname, "../client/dist")));
+
 async function main() {
-  const server = await registerRoutes(app);
+  const app = express();
+  const __dirname = dirname(fileURLToPath(import.meta.url));
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+  // Passport configuration
+  passport.use(
+    new LocalStrategy(async (username, password, done) => {
+      // In a real application, you should verify the password.
+      // For this demo, we'll just look up the user.
+      try {
+        const user = await storage.getProfileByEmail(username);
+        if (!user) {
+          return done(null, false, { message: 'Incorrect username.' });
+        }
+        return done(null, user);
+      } catch (err) {
+        return done(err);
+      }
+    })
+  );
 
-    res.status(status).json({ message });
-    throw err;
+  passport.serializeUser((user: any, done) => {
+    done(null, user.id);
+  });
+  
+  passport.deserializeUser(async (id: string, done) => {
+    try {
+      const user = await storage.getProfile(id);
+      done(null, user);
+    } catch (err) {
+      done(err);
+    }
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  // Session configuration
+  app.use(
+    session({
+      secret: "your-secret-key",
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+      },
+    })
+  );
+
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // JSON and URL-encoded body parsing
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+  function serveStatic(app: express.Express) {
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const clientDistPath = path.join(__dirname, "../client/dist");
+    log(`Serving static files from ${clientDistPath}`);
+    app.use(express.static(clientDistPath));
+    app.get("*", (req, res) => {
+        res.sendFile(path.join(clientDistPath, "index.html"));
+    });
+  }
+
+  const server = createServer(app);
+  
+  // Set up routes
+  await registerRoutes(app);
+  
+  // Set up Vite for development or serve static files for production
+  if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen(port, "0.0.0.0", () => {
-    log(`serving on port ${port}`);
-  });
-
   // Schedule cron jobs
-  scheduleExpiryAutomation(db);
+  scheduleExpiryAutomation();
 
   return { server, app };
 }
 
-main();
+main()
+  .then(({ server }) => {
+    const port = process.env.PORT || 5000;
+    server.listen(port, () => {
+      log(`serving on port ${port}`);
+    });
+  })
+  .catch((err) => {
+    log(err);
+    process.exit(1);
+  });

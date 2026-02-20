@@ -2,8 +2,8 @@
  * @fileoverview Manages the state of temperature readings for multiple IoT devices
  * and detects when a temperature breach occurs.
  */
-import { config } from './config';
-import { AlertService, TemperatureLog } from './AlertService';
+import { config } from './config.js';
+import { AlertService, TemperatureLog } from './AlertService.js';
 
 interface DeviceState {
   logs: TemperatureLog[];
@@ -67,7 +67,6 @@ export class TemperatureMonitor {
     const isBreached = relevantLogs.every(l => l.temperature > config.temperatureThreshold);
 
     if (isBreached) {
-      state.alertState = 'BREACHED';
       // If we haven't already sent an alert for this ongoing breach, send one.
       if (state.alertState !== 'ALERTED') {
         console.log(`CRITICAL: Temperature breach detected for device ${deviceId}!`);

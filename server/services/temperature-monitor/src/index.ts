@@ -6,9 +6,9 @@
 import express from 'express';
 import http from 'http';
 import WebSocket from 'ws';
-import { TemperatureMonitor } from './TemperatureMonitor';
-import { AlertService } from './AlertService';
-import { config } from './config';
+import { TemperatureMonitor } from './TemperatureMonitor.js';
+import { AlertService } from './AlertService.js';
+import { config } from './config.js';
 
 // --- Server Initialization ---
 const app = express();
@@ -71,7 +71,6 @@ app.post('/webhook/temperature', (req, res) => {
   
   res.status(202).json({ message: 'Accepted' });
 });
-
 
 // --- Start Server ---
 server.listen(config.port, () => {

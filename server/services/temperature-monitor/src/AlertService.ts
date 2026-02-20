@@ -3,8 +3,8 @@
  * sending dashboard notifications, making Twilio calls, and generating PDF reports.
  */
 import { Twilio } from 'twilio';
-import { generateStabilityReportPDF } from './PDFGenerator';
-import { config } from './config';
+import { generateStabilityReportPDF } from './PDFGenerator.js';
+import { config } from './config.js';
 
 export interface TemperatureLog {
   deviceId: string;
