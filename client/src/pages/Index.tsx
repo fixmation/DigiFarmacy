@@ -90,7 +90,7 @@ const Index = () => {
               </div>
               <div className="sm:hidden">
                 <h1 className="text-base font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-                  DiFarmacy
+                  DigiFarmacy
                 </h1>
               </div>
             </div>
@@ -254,7 +254,7 @@ const Index = () => {
           <SubscriptionPricing />
 
           {/* Main Interface */}
-          <Card className="bg-white/90 backdrop-blur-sm border border-gray-200 shadow-lg">
+          <Card className="bg-white/90 backdrop-blur-sm border border-gray-200 shadow-lg mt-8 md:mt-12">
             <CardContent className="p-0">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="p-4 md:p-6 pb-0">

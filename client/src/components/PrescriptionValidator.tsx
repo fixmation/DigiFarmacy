@@ -78,23 +78,25 @@ const PrescriptionValidator: React.FC<PrescriptionValidatorProps> = ({
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Shield className="h-5 w-5 text-blue-600" />
+        <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+          <Shield className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
           {title}
         </CardTitle>
-        <CardDescription>
-          {description}
-        </CardDescription>
+        {description && (
+          <CardDescription className="text-xs md:text-sm">
+            {description}
+          </CardDescription>
+        )}
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="p-3 md:p-6 space-y-4 md:space-y-6">
         {/* Requirements Notice */}
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
+        <Alert className="text-xs md:text-sm">
+          <AlertTriangle className="h-3 w-3 md:h-4 md:w-4 mt-0.5" />
+          <AlertDescription className="text-xs md:text-sm">
             <strong>Prescription Requirements:</strong>
-            <ul className="list-disc list-inside mt-2 text-sm space-y-1">
+            <ul className="list-disc list-inside mt-1 md:mt-2 text-xs md:text-sm space-y-0.5 md:space-y-1">
               <li>Must contain doctor's full name and MBBS/MD qualification</li>
               <li>Doctor's rubber stamp/seal clearly visible</li>
               <li>Valid SLMC registration number</li>
@@ -104,79 +106,84 @@ const PrescriptionValidator: React.FC<PrescriptionValidatorProps> = ({
         </Alert>
 
         {/* File Upload */}
-        <div className="space-y-2">
-          <Label htmlFor="prescription-file">Prescription Document</Label>
+        <div className="space-y-1.5 md:space-y-2">
+          <Label htmlFor="prescription-file" className="text-xs md:text-sm font-semibold">Prescription Document</Label>
           <Input
             id="prescription-file"
             type="file"
             accept="image/*,application/pdf"
             onChange={handleFileChange}
-            className="cursor-pointer"
+            className="cursor-pointer text-xs md:text-sm h-9 md:h-10"
           />
           {selectedFile && (
-            <div className="text-sm text-gray-600">
+            <div className="text-xs md:text-sm text-gray-600">
               Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
             </div>
           )}
         </div>
 
         {/* Doctor Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="doctor-name">Doctor's Full Name</Label>
-            <Input
-              id="doctor-name"
-              placeholder="Dr. John Doe"
-              value={doctorName}
-              onChange={(e) => setDoctorName(e.target.value)}
-              required
-            />
+        <div className="space-y-3 md:space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
+            <div className="space-y-1.5 md:space-y-2">
+              <Label htmlFor="doctor-name" className="text-xs md:text-sm font-semibold">Doctor's Full Name</Label>
+              <Input
+                id="doctor-name"
+                placeholder="Dr. John Doe"
+                value={doctorName}
+                onChange={(e) => setDoctorName(e.target.value)}
+                required
+                className="text-xs md:text-sm h-9 md:h-10"
+              />
+            </div>
+            <div className="space-y-1.5 md:space-y-2">
+              <Label htmlFor="doctor-qualification" className="text-xs md:text-sm font-semibold">Medical Qualification</Label>
+              <Input
+                id="doctor-qualification"
+                placeholder="MBBS, MD, MS, etc."
+                value={doctorQualification}
+                onChange={(e) => setDoctorQualification(e.target.value)}
+                required
+                className="text-xs md:text-sm h-9 md:h-10"
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="doctor-qualification">Medical Qualification</Label>
-            <Input
-              id="doctor-qualification"
-              placeholder="MBBS, MD, MS, etc."
-              value={doctorQualification}
-              onChange={(e) => setDoctorQualification(e.target.value)}
-              required
-            />
-          </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="registration-number">SLMC Registration Number</Label>
-          <Input
-            id="registration-number"
-            placeholder="e.g., SLMC 12345"
-            value={registrationNumber}
-            onChange={(e) => setRegistrationNumber(e.target.value)}
-            required
-          />
+          <div className="space-y-1.5 md:space-y-2">
+            <Label htmlFor="registration-number" className="text-xs md:text-sm font-semibold">SLMC Registration Number</Label>
+            <Input
+              id="registration-number"
+              placeholder="e.g., SLMC 12345"
+              value={registrationNumber}
+              onChange={(e) => setRegistrationNumber(e.target.value)}
+              required
+              className="text-xs md:text-sm h-9 md:h-10"
+            />
+          </div>
         </div>
 
         {/* Rubber Stamp Confirmation */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 p-2 md:p-3 bg-blue-50 rounded-lg border border-blue-200">
           <Checkbox
             id="rubber-stamp"
             checked={hasRubberStamp}
             onCheckedChange={(checked) => setHasRubberStamp(checked as boolean)}
           />
-          <Label htmlFor="rubber-stamp" className="text-sm font-medium">
+          <Label htmlFor="rubber-stamp" className="text-xs md:text-sm font-medium cursor-pointer">
             Prescription contains doctor's rubber stamp/official seal
           </Label>
         </div>
 
         {/* Validation Results */}
         {validation && (
-          <div className="space-y-3">
-            <div className={`flex items-center gap-2 p-3 rounded-lg ${
+          <div className="space-y-2 md:space-y-3">
+            <div className={`flex items-center gap-2 p-2 md:p-3 rounded-lg text-xs md:text-sm ${
               validation.isValid ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
             }`}>
               {validation.isValid ? (
-                <CheckCircle className="h-5 w-5 text-green-600" />
+                <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-600 flex-shrink-0" />
               ) : (
-                <XCircle className="h-5 w-5 text-red-600" />
+                <XCircle className="h-4 w-4 md:h-5 md:w-5 text-red-600 flex-shrink-0" />
               )}
               <span className="font-medium">
                 {validation.isValid ? 'Prescription Valid' : 'Validation Failed'}
@@ -184,13 +191,13 @@ const PrescriptionValidator: React.FC<PrescriptionValidatorProps> = ({
             </div>
 
             {validation.errors.length > 0 && (
-              <Alert variant="destructive">
-                <XCircle className="h-4 w-4" />
-                <AlertDescription>
+              <Alert variant="destructive" className="text-xs md:text-sm">
+                <XCircle className="h-3 w-3 md:h-4 md:w-4" />
+                <AlertDescription className="text-xs md:text-sm">
                   <strong>Errors:</strong>
                   <ul className="list-disc list-inside mt-1">
                     {validation.errors.map((error, index) => (
-                      <li key={index} className="text-sm">{error}</li>
+                      <li key={index} className="text-xs md:text-sm">{error}</li>
                     ))}
                   </ul>
                 </AlertDescription>
@@ -198,13 +205,13 @@ const PrescriptionValidator: React.FC<PrescriptionValidatorProps> = ({
             )}
 
             {validation.warnings.length > 0 && (
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
+              <Alert className="text-xs md:text-sm">
+                <AlertTriangle className="h-3 w-3 md:h-4 md:w-4" />
+                <AlertDescription className="text-xs md:text-sm">
                   <strong>Warnings:</strong>
                   <ul className="list-disc list-inside mt-1">
                     {validation.warnings.map((warning, index) => (
-                      <li key={index} className="text-sm">{warning}</li>
+                      <li key={index} className="text-xs md:text-sm">{warning}</li>
                     ))}
                   </ul>
                 </AlertDescription>
@@ -214,21 +221,23 @@ const PrescriptionValidator: React.FC<PrescriptionValidatorProps> = ({
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-3">
+        <div className="flex flex-col xs:flex-row gap-2 md:gap-3 w-full">
           <Button
             onClick={validateAndSubmit}
             disabled={!selectedFile || isValidating}
-            className="flex-1 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600"
+            className="flex-1 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-xs md:text-sm py-2 md:py-2.5 h-auto"
           >
             {isValidating ? (
               <>
-                <FileCheck className="h-4 w-4 mr-2 animate-pulse" />
-                Validating...
+                <FileCheck className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2 animate-pulse" />
+                <span className="hidden md:inline">Validating...</span>
+                <span className="md:hidden">Validating</span>
               </>
             ) : (
               <>
-                <Shield className="h-4 w-4 mr-2" />
-                Validate & Submit
+                <Shield className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden md:inline">Validate & Submit</span>
+                <span className="md:hidden">Validate</span>
               </>
             )}
           </Button>
@@ -237,13 +246,14 @@ const PrescriptionValidator: React.FC<PrescriptionValidatorProps> = ({
             onClick={resetForm}
             variant="outline"
             disabled={isValidating}
+            className="flex-1 text-xs md:text-sm py-2 md:py-2.5 h-auto"
           >
             Reset
           </Button>
         </div>
 
         {/* Upload Guidelines */}
-        <div className="text-xs text-gray-500 border-t pt-4">
+        <div className="text-xs text-gray-500 border-t pt-2 md:pt-4 space-y-1">
           <p><strong>File Requirements:</strong> JPEG, PNG, WEBP, or PDF files up to 10MB</p>
           <p><strong>Quality:</strong> Ensure clear, readable text and visible rubber stamp</p>
           <p><strong>Privacy:</strong> Personal information is processed securely and not stored</p>

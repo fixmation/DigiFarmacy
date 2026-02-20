@@ -415,6 +415,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get current pharmacy details for logged-in pharmacy user
+  app.get("/api/pharmacies/current", isPharmacist, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const pharmacy = await storage.getPharmacyByUserId(userId);
+      if (!pharmacy) {
+        return res.status(404).json({ error: "Pharmacy details not found" });
+      }
+      res.json(pharmacy);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch pharmacy details" });
+    }
+  });
+
   // Mapbox token endpoint (replaces Supabase Edge Function)
   app.get("/api/mapbox-token", async (req, res) => {
     try {
