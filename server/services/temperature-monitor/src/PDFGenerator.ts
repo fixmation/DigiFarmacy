@@ -6,15 +6,22 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { TemperatureLog } from './AlertService';
 import { config } from './config';
+import { getStabilityAssessment, calculateAverageTemperature, calculateDurationHours, RiskAssessment } from './StabilityAssessmentService';
 import fs from 'fs';
 import path from 'path';
 
 /**
- * Generates and saves a PDF report for a temperature breach.
+ * Generates and saves a PDF report for a temperature breach with stability assessment.
+ * Fetches shelf-life loss data from Formus API and includes Risk Assessment.
  * @param deviceId The ID of the device that had the breach.
  * @param breachLogs The temperature logs that constitute the breach.
+ * @param drugId Optional drug/batch ID for stability assessment lookup
  */
-export const generateStabilityReportPDF = (deviceId: string, breachLogs: TemperatureLog[]): void => {
+export const generateStabilityReportPDF = async (
+  deviceId: string,
+  breachLogs: TemperatureLog[],
+  drugId?: string
+): Promise<void> => {
   const doc = new jsPDF();
   const reportDate = new Date();
   const reportTitle = 'Cold Chain Stability Deviation Report';
@@ -86,6 +93,58 @@ export const generateStabilityReportPDF = (deviceId: string, breachLogs: Tempera
     theme: 'grid',
     headStyles: { fillColor: [100, 100, 100] },
   });
+
+  // --- Risk Assessment Section (from Formus API) ---
+  let riskAssessment: RiskAssessment | null = null;
+  
+  if (drugId) {
+    try {
+      const averageTemp = calculateAverageTemperature(breachLogs.map(l => l.temperature));
+      const durationHours = calculateDurationHours(durationMs);
+      riskAssessment = await getStabilityAssessment(drugId, averageTemp, durationHours);
+      
+      // Determine color based on risk level
+      let riskColor = [0, 200, 0]; // Green for LOW
+      if (riskAssessment.riskLevel === 'MEDIUM') riskColor = [255, 165, 0]; // Orange
+      else if (riskAssessment.riskLevel === 'HIGH') riskColor = [255, 100, 0]; // Dark orange
+      else if (riskAssessment.riskLevel === 'CRITICAL') riskColor = [200, 0, 0]; // Red
+
+      autoTable(doc, {
+        head: [['Risk Assessment (Formus API)']],
+        theme: 'striped',
+        headStyles: { fillColor: riskColor },
+      });
+
+      autoTable(doc, {
+        body: [
+          ['Drug/Batch ID', drugId],
+          ['Average Temperature During Breach', `${riskAssessment.averageTemperature.toFixed(2)} °C`],
+          ['Breach Duration', `${riskAssessment.durationHours} hours`],
+          ['Shelf-Life Loss Percentage', `${riskAssessment.shelfLifeLossPercentage}%`],
+          ['Risk Level', riskAssessment.riskLevel],
+          ['Estimated Remaining Shelf-Life', `${riskAssessment.estimatedRemainingShelfLifeDays} days`],
+          ['Recommendation', riskAssessment.recommendation],
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [100, 100, 100] },
+      });
+    } catch (error) {
+      console.error('Failed to retrieve stability assessment:', error);
+      autoTable(doc, {
+        head: [['Risk Assessment']],
+        body: [[`Note: Stability assessment unavailable. Please contact Formus support. Error: ${error instanceof Error ? error.message : 'Unknown error'}`]],
+        theme: 'striped',
+        headStyles: { fillColor: [200, 100, 0] }, // Orange for warning
+      });
+    }
+  } else {
+    autoTable(doc, {
+      head: [['Risk Assessment']],
+      body: [['Note: Drug/Batch ID not provided. Please supply drug_id for Formus stability assessment.']],
+      theme: 'striped',
+      headStyles: { fillColor: [150, 150, 150] }, // Gray for informational
+    });
+  }
   
   // --- Footer ---
   const pageCount = (doc as any).internal.getNumberOfPages();

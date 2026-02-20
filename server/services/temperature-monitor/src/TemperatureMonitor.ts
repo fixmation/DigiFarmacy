@@ -50,7 +50,7 @@ export class TemperatureMonitor {
    * @param deviceId The ID of the device to check.
    * @param state The current state of that device.
    */
-  private checkForBreach(deviceId: string, state: DeviceState): void {
+  private async checkForBreach(deviceId: string, state: DeviceState): Promise<void> {
     const now = new Date().getTime();
     const breachStartTime = now - config.breachDurationMinutes * 60 * 1000;
 
@@ -71,7 +71,10 @@ export class TemperatureMonitor {
       if (state.alertState !== 'ALERTED') {
         console.log(`CRITICAL: Temperature breach detected for device ${deviceId}!`);
         state.alertState = 'ALERTED';
-        this.alertService.triggerAlerts(deviceId, relevantLogs);
+        
+        // Extract drugId from log if available (can be added to TemperatureLog interface)
+        const drugId = (relevantLogs[0] as any).drugId;
+        await this.alertService.triggerAlerts(deviceId, relevantLogs, drugId);
       }
     } else {
       this.resetStateIfNecessary(state, deviceId);

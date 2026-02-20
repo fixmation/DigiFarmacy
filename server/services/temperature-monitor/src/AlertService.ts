@@ -30,16 +30,27 @@ export class AlertService {
    * Orchestrates all alerts for a temperature breach.
    * @param deviceId The device that has the breach.
    * @param breachLogs The logs associated with the breach.
+   * @param drugId Optional drug/batch ID for stability assessment
    */
-  public triggerAlerts(deviceId: string, breachLogs: TemperatureLog[]): void {
+  public async triggerAlerts(deviceId: string, breachLogs: TemperatureLog[], drugId?: string): Promise<void> {
     // 1. Trigger B2B Dashboard Alert
     this.sendDashboardAlert(deviceId, breachLogs);
 
     // 2. Make Twilio Voice Call
     this.makeTwilioVoiceCall(deviceId);
 
-    // 3. Generate Stability Deviation Report
-    generateStabilityReportPDF(deviceId, breachLogs);
+    // 3. Generate Stability Deviation Report (with Formus API integration)
+    try {
+      await generateStabilityReportPDF(deviceId, breachLogs, drugId);
+    } catch (error) {
+      console.error('Error generating stability report:', error);
+      this.broadcastAlert({
+        type: 'report_generation_failed',
+        deviceId,
+        timestamp: new Date().toISOString(),
+        message: `Failed to generate stability report for ${deviceId}`,
+      });
+    }
   }
   
   /**

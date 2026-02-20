@@ -10,6 +10,10 @@ import { TemperatureMonitor } from './TemperatureMonitor.js';
 import { AlertService } from './AlertService.js';
 import { config } from './config.js';
 
+// --- Export Stability Assessment Types ---
+export { getStabilityAssessment, calculateAverageTemperature, calculateDurationHours } from './StabilityAssessmentService.js';
+export type { RiskAssessment, FormosRequest, FormosResponse } from './StabilityAssessmentService.js';
+
 // --- Server Initialization ---
 const app = express();
 app.use(express.json());
