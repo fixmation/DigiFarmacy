@@ -8,6 +8,8 @@ import { createServer, type Server } from "http";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 import { registerRoutes } from "./routes";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 import { scheduleExpiryAutomation } from './cronJobs';
 import { storage } from './storage';
 import { log } from "console";
@@ -94,9 +96,6 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, "../client/dist")));
 
 async function main() {
-  const app = express();
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-
   // Passport configuration
   passport.use(
     new LocalStrategy(async (username, password, done) => {

@@ -3,7 +3,7 @@
  * This service runs once every 24 hours.
  */
 import { storage } from './storage'; // Assuming storage handles DB interactions
-const cron = require('node-cron');
+import * as cron from 'node-cron';
 
 // --- Type Definitions ---
 interface MedicineBatch {
