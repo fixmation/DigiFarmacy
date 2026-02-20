@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, MapPin, Camera, Upload, MessageCircle, FileText, User, LogOut, Mic, HelpCircle } from "lucide-react";
+import { Search, MapPin, Camera, Upload, MessageCircle, FileText, User, LogOut, Mic, HelpCircle, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,8 @@ import { MobileSearchDropdown } from "@/components/MobileSearchDropdown";
 import LocationSearch from "@/components/LocationSearch";
 import MobileFooterPopup from "@/components/MobileFooterPopup";
 import WorkflowSummary from "@/components/WorkflowSummary";
+import HowDigiFarmacyWorks from "@/components/HowDigiFarmacyWorks";
+import SubscriptionPricing from "@/components/SubscriptionPricing";
 
 interface ExtractedMedication {
   id: string;
@@ -233,8 +235,8 @@ const Index = () => {
             </Card>
           </div>
 
-          {/* Workflow Summary Section */}
-          <WorkflowSummary />
+          {/* How DigiFarmacy Works Section */}
+          <HowDigiFarmacyWorks />
 
           {/* Report Generator Modal */}
           {showReportGenerator && reportData && (
@@ -248,61 +250,8 @@ const Index = () => {
             </div>
           )}
 
-          {/* Laboratory Home Visits Pricing */}
-          <Card className="bg-white/90 backdrop-blur-sm border border-gray-200 shadow-lg mb-8">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-                Laboratory Home Visits
-              </CardTitle>
-              <CardDescription className="text-gray-600">
-                Professional medical testing at your convenience
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="text-center p-4 border border-gray-200 rounded-lg">
-                  <div className="text-3xl font-bold text-blue-600 mb-2">LKR 2,500</div>
-                  <div className="text-sm text-gray-600 mb-3">Basic Package</div>
-                  <div className="text-xs text-gray-500 space-y-1">
-                    <p>• Blood glucose test</p>
-                    <p>• Blood pressure check</p>
-                    <p>• Basic health assessment</p>
-                  </div>
-                </div>
-                <div className="text-center p-4 border-2 border-blue-600 rounded-lg bg-blue-50">
-                  <div className="text-3xl font-bold text-blue-600 mb-2">LKR 4,500</div>
-                  <div className="text-sm text-gray-600 mb-3">Complete Package</div>
-                  <div className="text-xs text-gray-500 space-y-1">
-                    <p>• Full blood count</p>
-                    <p>• Liver function tests</p>
-                    <p>• Kidney function tests</p>
-                    <p>• Lipid profile</p>
-                  </div>
-                </div>
-                <div className="text-center p-4 border border-gray-200 rounded-lg">
-                  <div className="text-3xl font-bold text-green-600 mb-2">LKR 7,500</div>
-                  <div className="text-sm text-gray-600 mb-3">Premium Package</div>
-                  <div className="text-xs text-gray-500 space-y-1">
-                    <p>• Complete blood analysis</p>
-                    <p>• Cardiac markers</p>
-                    <p>• Diabetes screening</p>
-                    <p>• Thyroid function</p>
-                  </div>
-                </div>
-              </div>
-              <div className="text-center mt-4">
-                <p className="text-sm text-gray-600">
-                  The Package prices given above are only an estimation and guidance, prices may vary with different laboratories.
-                </p>
-              </div>
-              <Button
-                onClick={() => navigate('/lab-booking')}
-                className="w-full bg-gradient-to-r from-[#00bfff] to-green-500 text-white mt-6"
-              >
-                Book Home Visit
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Subscription Pricing Section */}
+          <SubscriptionPricing />
 
           {/* Main Interface */}
           <Card className="bg-white/90 backdrop-blur-sm border border-gray-200 shadow-lg">
