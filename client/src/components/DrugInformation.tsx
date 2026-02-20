@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +29,7 @@ interface DrugInfo {
 }
 
 const DrugInformation: React.FC<DrugInformationProps> = ({ selectedDrug }) => {
+  const { profile, loading } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [drugInfo, setDrugInfo] = useState<DrugInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -126,6 +128,17 @@ const DrugInformation: React.FC<DrugInformationProps> = ({ selectedDrug }) => {
       handleSearch(selectedDrug);
     }
   }, [selectedDrug]);
+
+  if (!loading && !profile) {
+    return (
+      <div className="p-4">
+        <div className="text-center p-6 bg-white/90 rounded">
+          <h3 className="font-semibold">Please sign in</h3>
+          <p className="text-sm text-muted-foreground">NMRA drug search is available to authenticated pharmacists and healthcare professionals only.</p>
+        </div>
+      </div>
+    );
+  }
 
   // Function to search the drug information
   // Removed external DrugBank API - now using local NMRA database

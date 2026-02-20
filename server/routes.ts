@@ -4,10 +4,63 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { insertLabBookingSchema, insertPharmacyDetailsSchema, insertLaboratoryDetailsSchema, insertProfileSchema } from "@shared/schema";
 import drugRoutes from "./routes/drugs";
+import passport from "passport";
+
+// Middleware to check if the user is authenticated and has a specific role
+const isPharmacist = (req: any, res: any, next: any) => {
+  if (req.isAuthenticated() && req.user && req.user.role === 'pharmacy') {
+    return next();
+  }
+  res.status(403).json({ error: 'Forbidden: Pharmacists only' });
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes for the lab booking application
   
+  // Auth routes
+  app.post('/api/login', passport.authenticate('local'), async (req, res) => {
+    // After authentication, fetch the full profile to ensure we have all fields
+    const fullProfile = await storage.getProfile(req.user.id);
+    res.json({ 
+      success: true, 
+      user: {
+        id: fullProfile.id,
+        email: fullProfile.email,
+        fullName: fullProfile.fullName,
+        phone: fullProfile.phone,
+        role: fullProfile.role,
+        status: fullProfile.status,
+        preferredLanguage: fullProfile.preferredLanguage
+      }
+    });
+  });
+
+  app.post('/api/logout', (req, res, next) => {
+    req.logout((err) => {
+      if (err) { return next(err); }
+      res.json({ success: true });
+    });
+  });
+
+  app.get('/api/session', async (req, res) => {
+    if (req.isAuthenticated()) {
+      const fullProfile = await storage.getProfile(req.user.id);
+      res.json({ 
+        user: {
+          id: fullProfile.id,
+          email: fullProfile.email,
+          fullName: fullProfile.fullName,
+          phone: fullProfile.phone,
+          role: fullProfile.role,
+          status: fullProfile.status,
+          preferredLanguage: fullProfile.preferredLanguage
+        }
+      });
+    } else {
+      res.status(401).json({ user: null });
+    }
+  });
+
   // Profile routes
   app.post("/api/profiles", async (req, res) => {
     try {
@@ -63,6 +116,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to upload prescription" });
+    }
+  });
+
+  // Pharmacist audit route - accepts an image (base64) and returns OCR + AI analyses
+  app.post("/api/prescriptions/audit", isPharmacist, async (req, res) => {
+    try {
+      const { imageBase64 } = req.body as { imageBase64?: string };
+
+      if (!imageBase64) {
+        return res.status(400).json({ error: "imageBase64 is required" });
+      }
+
+      // Perform OCR using Vision API
+      const { extractTextFromBase64 } = await import("./ocr");
+      const ocrText = await extractTextFromBase64(imageBase64);
+
+      // Use Gemini to extract medication names from OCR text
+      const { extractMedicationNamesFromText, analyzeDrugInformation } = await import("./gemini");
+      let medNames: string[] = [];
+      try {
+        medNames = await extractMedicationNamesFromText(ocrText);
+      } catch (e) {
+        console.error('Medication extraction failed, falling back to simple parse', e);
+        // fallback: simple split by newlines and filter
+        medNames = ocrText.split(/\n|,|;|\.|\//).map(s => s.trim()).filter(Boolean).slice(0, 3);
+      }
+
+      const analyses = [] as any[];
+      for (const name of medNames) {
+        try {
+          const analysis = await analyzeDrugInformation(name, {});
+          analyses.push({ drugName: name, analysis });
+        } catch (err) {
+          analyses.push({ drugName: name, analysis: null, error: String(err) });
+        }
+      }
+
+      res.json({ success: true, ocrText, extracted: medNames, analyses });
+    } catch (error) {
+      console.error('Audit error:', error);
+      res.status(500).json({ error: 'Failed to audit prescription' });
     }
   });
 

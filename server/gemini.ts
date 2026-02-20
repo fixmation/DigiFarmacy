@@ -193,3 +193,31 @@ Provide a detailed clinical report suitable for healthcare professionals.`;
     return `Report for ${drugName} - Please consult healthcare provider for complete medication information.`;
   }
 }
+
+// Extract medication names from free text (OCR output) using Gemini LLM
+export async function extractMedicationNamesFromText(text: string): Promise<string[]> {
+  try {
+    const prompt = `Extract a JSON array of medication names mentioned in the following prescription text. Return only an array of strings with the medication names, no extra commentary.\n\nPrescription text:\n${text}`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-pro',
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'array',
+          items: { type: 'string' }
+        }
+      },
+      contents: prompt
+    });
+
+    const txt = response.text;
+    if (txt) {
+      return JSON.parse(txt);
+    }
+    return [];
+  } catch (error) {
+    console.error('Failed to extract medication names:', error);
+    return [];
+  }
+}

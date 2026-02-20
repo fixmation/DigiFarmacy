@@ -1,10 +1,60 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import { storage } from "./storage";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "a-secret-key-that-is-at-least-32-chars-long",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    },
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.use(
+  new LocalStrategy(async (username, password, done) => {
+    try {
+      // For now, we'll just find a user by email (username)
+      // and not check the password. In a real app, you'd hash
+      // and compare passwords.
+      const user = await storage.getProfileByEmail(username);
+      if (!user) {
+        return done(null, false, { message: "Incorrect username." });
+      }
+      return done(null, user);
+    } catch (err) {
+      return done(err);
+    }
+  })
+);
+
+passport.serializeUser((user: any, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser(async (id: string, done) => {
+  try {
+    const user = await storage.getProfile(id);
+    done(null, user);
+  } catch (err) {
+    done(err);
+  }
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

@@ -41,16 +41,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session in localStorage
-    const storedUser = localStorage.getItem('digiFarmacy_user');
-    const storedProfile = localStorage.getItem('digiFarmacy_profile');
-    
-    if (storedUser && storedProfile) {
-      setUser(JSON.parse(storedUser));
-      setProfile(JSON.parse(storedProfile));
+    const checkSession = async () => {
+      try {
+        const res = await fetch('/api/session');
+        if (res.ok) {
+          const { user } = await res.json();
+          console.log("Auth: checkSession - received user from API:", user);
+          if (user) {
+            const profile: UserProfile = {
+              id: user.id,
+              email: user.email,
+              full_name: user.fullName,
+              phone: user.phone,
+              role: user.role,
+              status: user.status,
+              preferred_language: user.preferredLanguage,
+            };
+            setUser({id: user.id, email: user.email});
+            setProfile(profile);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking session:", error)
+      } finally {
+        setLoading(false);
+      }
     }
-    
-    setLoading(false);
+    checkSession();
   }, []);
 
   const signUp = async (email: string, password: string, userData: any) => {
@@ -88,27 +105,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      // For demo purposes, accept any credentials
-      const user: AuthUser = {
-        id: `user_${email.replace('@', '_').replace('.', '_')}`,
-        email
-      };
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: email, password }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Sign in failed');
+      }
+
+      const { user } = await res.json();
+      console.log("Auth: signIn - received user from API:", user);
       
       const profile: UserProfile = {
         id: user.id,
-        email,
-        full_name: email.split('@')[0],
-        phone: null,
-        role: 'customer',
-        status: 'verified',
-        preferred_language: 'en'
+        email: user.email,
+        full_name: user.fullName,
+        phone: user.phone,
+        role: user.role,
+        status: user.status,
+        preferred_language: user.preferredLanguage,
       };
 
-      localStorage.setItem('digiFarmacy_user', JSON.stringify(user));
-      localStorage.setItem('digiFarmacy_profile', JSON.stringify(profile));
-      
-      setUser(user);
+      setUser({id: user.id, email: user.email});
       setProfile(profile);
+      console.log("Auth: signIn - user and profile set:", user, profile);
       
       toast.success('Signed in successfully!');
     } catch (error) {
@@ -119,8 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      localStorage.removeItem('digiFarmacy_user');
-      localStorage.removeItem('digiFarmacy_profile');
+      await fetch('/api/logout', { method: 'POST' });
       setUser(null);
       setProfile(null);
       toast.success('Signed out successfully!');

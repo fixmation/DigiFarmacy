@@ -98,6 +98,31 @@ export class MemStorage implements IStorage {
   }
 
   private initializeSampleData() {
+    // Add sample profiles
+    this.profiles = [
+      {
+        id: "user-pharmacy-001",
+        email: "pharmacist@test.com",
+        fullName: "Test Pharmacist",
+        phone: "123456789",
+        role: "pharmacy",
+        status: "verified",
+        preferredLanguage: "en",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: "user-lab-001",
+        email: "lab@test.com",
+        fullName: "Test Lab",
+        phone: "987654321",
+        role: "laboratory",
+        status: "verified",
+        preferredLanguage: "en",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    ];
     // Add sample pharmacies across Sri Lanka
     this.pharmacies = [
       {
@@ -224,7 +249,7 @@ export class MemStorage implements IStorage {
   }
 
   async getProfileByEmail(email: string): Promise<Profile | null> {
-    return this.profiles.find(profile => profile.email === email) || null;
+    return this.profiles.find(p => p.email === email) || null;
   }
 
   async updateProfile(id: string, updates: Partial<Profile>): Promise<Profile | null> {
@@ -236,10 +261,10 @@ export class MemStorage implements IStorage {
   }
 
   async listProfiles(): Promise<Profile[]> {
-    return [...this.profiles];
+    return this.profiles;
   }
 
-  // Simplified pharmacy methods
+  // Pharmacy Details methods
   async createPharmacyDetails(pharmacy: InsertPharmacyDetails): Promise<PharmacyDetails> {
     const newPharmacy: PharmacyDetails = {
       id: `pharmacy_${Date.now()}`,

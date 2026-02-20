@@ -1,11 +1,13 @@
 
 import { useState, useRef } from 'react';
+import { useAuth } from './auth/AuthProvider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Camera, Upload, FileText, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
 
 interface PrescriptionUploadProps {
   onDrugExtracted: (drugName: string) => void;
@@ -21,23 +23,24 @@ interface ExtractedMedication {
 const PrescriptionUpload = ({ onDrugExtracted }: PrescriptionUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [extractedMeds, setExtractedMeds] = useState<ExtractedMedication[]>([]);
+  const [extractedMeds, setExtractedMeds] = useState<(ExtractedMedication & { analysis?: any })[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { profile } = useAuth();
 
-  // Mock OCR extraction - in real app, this would call Google Vision API or similar
-  const mockOCRExtraction = (): ExtractedMedication[] => {
-    const sampleMeds = [
-      { name: "Lisinopril", dosage: "10mg", frequency: "Once daily", confidence: 0.95 },
-      { name: "Metformin", dosage: "500mg", frequency: "Twice daily", confidence: 0.88 },
-      { name: "Atorvastatin", dosage: "20mg", frequency: "Once daily", confidence: 0.92 }
-    ];
-    
-    // Return 1-3 random medications
-    const count = Math.floor(Math.random() * 3) + 1;
-    return sampleMeds.slice(0, count);
-  };
+  // Helper to convert file to base64
+  const fileToBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // strip data:*/*;base64, prefix
+      const idx = result.indexOf(',');
+      resolve(idx >= 0 ? result.slice(idx + 1) : result);
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
 
   const handleFileUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -49,36 +52,50 @@ const PrescriptionUpload = ({ onDrugExtracted }: PrescriptionUploadProps) => {
       return;
     }
 
+    if (!profile || profile.role !== 'pharmacy') {
+      toast({ title: 'Access denied', description: 'This feature is available to verified pharmacists only.', variant: 'destructive' });
+      return;
+    }
+
     setIsUploading(true);
     setUploadedFile(file);
-    
+
     // Create preview URL
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
 
     try {
-      // Simulate OCR processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const extracted = mockOCRExtraction();
-      setExtractedMeds(extracted);
-      
-      toast({
-        title: "Prescription processed!",
-        description: `Extracted ${extracted.length} medication(s) from your prescription.`,
+      const base64 = await fileToBase64(file);
+
+      const response = await fetch('/api/prescriptions/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64 })
       });
-      
-      // Auto-select first medication for drug info
-      if (extracted.length > 0) {
-        onDrugExtracted(extracted[0].name);
+
+      if (!response.ok) throw new Error('Audit failed');
+
+      const data = await response.json();
+      // data.extracted and data.analyses
+      const extractedResults: (ExtractedMedication & { analysis?: any })[] = (data.extracted || []).map((name: string) => ({
+        name,
+        dosage: 'Not available',
+        frequency: 'Not available',
+        confidence: 0.9,
+        analysis: (data.analyses || []).find((a: any) => a.drugName === name)?.analysis ?? null
+      }));
+
+      setExtractedMeds(extractedResults);
+
+      toast({ title: 'Audit complete', description: `Found ${extractedResults.length} medication(s).` });
+
+      if (extractedResults.length > 0) {
+        onDrugExtracted(extractedResults[0].name);
       }
-      
+
     } catch (error) {
-      toast({
-        title: "Processing failed",
-        description: "Failed to extract information from the prescription. Please try again.",
-        variant: "destructive"
-      });
+      console.error(error);
+      toast({ title: 'Processing failed', description: 'Failed to audit the prescription. Please try again.', variant: 'destructive' });
     } finally {
       setIsUploading(false);
     }
@@ -115,10 +132,10 @@ const PrescriptionUpload = ({ onDrugExtracted }: PrescriptionUploadProps) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-medical-blue" />
-            Upload Prescription
+            Pharmacist Audit Tool
           </CardTitle>
           <CardDescription>
-            Take a photo or upload an image of your prescription for automatic medication extraction
+            Upload a doctor's handwritten prescription for pharmacist-only AI-assisted review and second-opinion warnings.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -133,7 +150,7 @@ const PrescriptionUpload = ({ onDrugExtracted }: PrescriptionUploadProps) => {
                       size="lg"
                     >
                       <Upload className="h-5 w-5 mr-2" />
-                      Upload Image
+                      Upload Prescription Image
                     </Button>
                     
                     <Button
@@ -148,7 +165,7 @@ const PrescriptionUpload = ({ onDrugExtracted }: PrescriptionUploadProps) => {
                   </div>
                   
                   <p className="text-sm text-muted-foreground">
-                    Supported formats: JPG, PNG, PDF • Max size: 10MB
+                    Supported formats: JPG, PNG • Max size: 10MB
                   </p>
                 </div>
               </div>
@@ -196,16 +213,16 @@ const PrescriptionUpload = ({ onDrugExtracted }: PrescriptionUploadProps) => {
         </CardContent>
       </Card>
 
-      {/* Extracted Medications */}
-      {extractedMeds.length > 0 && (
+      {/* Extracted Medications (visible to pharmacists only) */}
+      {profile && profile.role === 'pharmacy' && extractedMeds.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-medical-green" />
-              Extracted Medications
+              Extracted Medications & AI Warnings
             </CardTitle>
             <CardDescription>
-              Review the medications detected in your prescription
+              Review medications detected and pharmacist-facing AI warnings (interactions, side effects)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -239,6 +256,32 @@ const PrescriptionUpload = ({ onDrugExtracted }: PrescriptionUploadProps) => {
                             <p className="font-medium">{med.frequency}</p>
                           </div>
                         </div>
+                        {/* Show AI warnings if available */}
+                        {med.analysis && (
+                          <div className="mt-3 space-y-2">
+                            {med.analysis.interactions && med.analysis.interactions.length > 0 && (
+                              <div className="p-2 bg-yellow-50 border border-yellow-200 rounded">
+                                <div className="text-sm font-medium text-yellow-800">Drug Interaction Warnings</div>
+                                <ul className="text-sm mt-1 list-disc pl-5">
+                                  {med.analysis.interactions.map((i: string, ii: number) => (
+                                    <li key={ii}>{i}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {med.analysis.sideEffects && med.analysis.sideEffects.length > 0 && (
+                              <div className="p-2 bg-red-50 border border-red-200 rounded">
+                                <div className="text-sm font-medium text-red-800">Side Effects</div>
+                                <ul className="text-sm mt-1 list-disc pl-5">
+                                  {med.analysis.sideEffects.map((s: string, si: number) => (
+                                    <li key={si}>{s}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       
                       <Button

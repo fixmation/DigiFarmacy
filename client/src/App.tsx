@@ -21,6 +21,8 @@ import Privacy from "./pages/Privacy";
 import TermsOfService from "./pages/TermsOfService";
 import VoiceAssistant from "./pages/VoiceAssistant";
 import Workflow from "./pages/Workflow";
+import Login from "./pages/Login";
+import RoleMiddleware from "./components/auth/RoleMiddleware";
 
 const queryClient = new QueryClient();
 
@@ -45,19 +47,23 @@ const App = () => (
           <BrowserRouter>
             <ScrollToTop />
             <Routes>
+              {/* Public landing page - shows AuthModal for unauthenticated users */}
               <Route path="/" element={<Index />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/login" element={<Login />} />
               <Route path="/admin-auth" element={<AdminAuth />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/pdpa" element={<PDPA />} />
-              <Route path="/drug-info" element={<DrugInfo />} />
-              <Route path="/how-to-use" element={<HowToUse />} />
-              <Route path="/lab-booking" element={<LabBooking />} />
-              <Route path="/prescription-scanner" element={<PrescriptionScanner />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/voice-assistant" element={<VoiceAssistant />} />
-              <Route path="/workflow" element={<Workflow />} />
+
+              {/* Protected routes - require pharmacy/lab/admin roles */}
+              <Route path="/dashboard" element={<RoleMiddleware><Dashboard /></RoleMiddleware>} />
+              <Route path="/contact" element={<RoleMiddleware><Contact /></RoleMiddleware>} />
+              <Route path="/pdpa" element={<RoleMiddleware><PDPA /></RoleMiddleware>} />
+              <Route path="/drug-info" element={<RoleMiddleware><DrugInfo /></RoleMiddleware>} />
+              <Route path="/how-to-use" element={<RoleMiddleware><HowToUse /></RoleMiddleware>} />
+              <Route path="/lab-booking" element={<RoleMiddleware><LabBooking /></RoleMiddleware>} />
+              <Route path="/prescription-scanner" element={<RoleMiddleware><PrescriptionScanner /></RoleMiddleware>} />
+              <Route path="/privacy" element={<RoleMiddleware><Privacy /></RoleMiddleware>} />
+              <Route path="/terms" element={<RoleMiddleware><TermsOfService /></RoleMiddleware>} />
+              <Route path="/voice-assistant" element={<RoleMiddleware><VoiceAssistant /></RoleMiddleware>} />
+              <Route path="/workflow" element={<RoleMiddleware><Workflow /></RoleMiddleware>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
         </BrowserRouter>
