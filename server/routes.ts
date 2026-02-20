@@ -19,8 +19,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Auth routes
   app.post('/api/login', passport.authenticate('local'), async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Authentication failed." });
+    }
     // After authentication, fetch the full profile to ensure we have all fields
-    const fullProfile = await storage.getProfile(req.user.id);
+    const fullProfile = await storage.getProfile(String(req.user.id));
+
+    if (!fullProfile) {
+      return res.status(404).json({ success: false, message: "User profile not found." });
+    }
+
     res.json({ 
       success: true, 
       user: {
@@ -43,8 +51,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get('/api/session', async (req, res) => {
-    if (req.isAuthenticated()) {
-      const fullProfile = await storage.getProfile(req.user.id);
+    if (req.isAuthenticated() && req.user) {
+      const fullProfile = await storage.getProfile(String(req.user.id));
+
+      if (!fullProfile) {
+        return res.status(404).json({ user: null, message: "User profile not found." });
+      }
+
       res.json({ 
         user: {
           id: fullProfile.id,

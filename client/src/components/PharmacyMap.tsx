@@ -257,8 +257,6 @@ const PharmacyMap = ({ searchQuery }: PharmacyMapProps) => {
                 )}
               </div>
             )}
-              </div>
-            )}
           </div>
         </div>
       )}
