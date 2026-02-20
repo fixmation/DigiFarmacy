@@ -92,6 +92,7 @@ export class MemStorage implements IStorage {
   private commissionTransactions: CommissionTransaction[] = [];
   private prescriptions: Prescription[] = [];
   private prescriptionMedications: PrescriptionMedication[] = [];
+  private medicineBatches: MedicineBatch[] = [];
 
   constructor() {
     this.initializeSampleData();
@@ -524,6 +525,41 @@ export class MemStorage implements IStorage {
     
     this.prescriptionMedications.splice(medicationIndex, 1);
     return true;
+  }
+
+  // --- Medicine Batch Methods ---
+  async getRotationNeededBatches(minDays: number, maxDays: number): Promise<MedicineBatch[]> {
+    const minThresholdDate = new Date();
+    minThresholdDate.setDate(minThresholdDate.getDate() + minDays);
+
+    const maxThresholdDate = new Date();
+    maxThresholdDate.setDate(maxThresholdDate.getDate() + maxDays);
+
+    // Find batches expiring strictly after minDays and up to/including maxDays
+    return mockMedicineBatches.filter(batch =>
+      batch.expiryDate > minThresholdDate &&
+      batch.expiryDate <= maxThresholdDate
+    );
+  },
+  
+  async getExpiringBatches(daysUntilExpiry: number): Promise<MedicineBatch[]> {
+    const thresholdDate = new Date();
+    thresholdDate.setDate(thresholdDate.getDate() + daysUntilExpiry);
+
+    return this.medicineBatches.filter(batch => 
+      batch.expiryDate <= thresholdDate &&
+      batch.expiryDate > new Date() && // Ensure it's not already expired
+      !batch.isPromotional // Only pick up items that are not already promotional
+    );
+  },
+
+  async updateBatchForPromotion(batchId: string, updates: Partial<MedicineBatch>): Promise<MedicineBatch | null> {
+    const batchIndex = this.medicineBatches.findIndex(b => b.id === batchId);
+    if (batchIndex === -1) {
+      return null;
+    }
+    mockMedicineBatches[batchIndex] = { ...mockMedicineBatches[batchIndex], ...updates };
+    return mockMedicineBatches[batchIndex];
   }
 }
 

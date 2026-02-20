@@ -6,6 +6,11 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { storage } from "./storage";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { createServer, type Server } from "http";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { DrizzleClient, createDrizzleClient } from "./db";
+import { scheduleExpiryAutomation } from './src/cronJobs';
 
 const app = express();
 app.use(express.json());
@@ -86,7 +91,7 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+async function main() {
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -113,4 +118,11 @@ app.use((req, res, next) => {
   server.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
   });
-})();
+
+  // Schedule cron jobs
+  scheduleExpiryAutomation(db);
+
+  return { server, app };
+}
+
+main();
