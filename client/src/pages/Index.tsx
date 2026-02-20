@@ -77,7 +77,10 @@ const Index = () => {
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-white/20 sticky top-0 z-40 shadow-blue-md">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-2">
+          {/* Mobile: Two-line layout, Desktop: Single-line layout */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
+            
+            {/* Top line: Branding (mobile) / Left section (desktop) */}
             <div className="flex items-center space-x-2 sm:space-x-3 flex-1">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#00bfff] to-green-500 rounded-xl flex items-center justify-center shadow-blue-sm flex-shrink-0">
                 <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
@@ -95,7 +98,8 @@ const Index = () => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4 flex-wrap gap-1">
+            {/* Bottom line: Controls (mobile) / Right section (desktop) */}
+            <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4 flex-wrap gap-1 w-full sm:w-auto sm:flex-nowrap sm:flex-1 sm:justify-end">
               {/* Desktop Location Search */}
               <div className="hidden lg:block max-w-xs lg:max-w-md">
                 <LocationSearch
