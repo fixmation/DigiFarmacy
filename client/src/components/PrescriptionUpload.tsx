@@ -126,46 +126,48 @@ const PrescriptionUpload = ({ onDrugExtracted }: PrescriptionUploadProps) => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
       {/* Upload Section */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="p-3 sm:p-4 md:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
             <FileText className="h-5 w-5 text-medical-blue" />
             Pharmacist Audit Tool
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs sm:text-sm mt-2">
             Upload a doctor's handwritten prescription for pharmacist-only AI-assisted review and second-opinion warnings.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-4 md:p-6">
           {!uploadedFile ? (
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-medical-blue/30 rounded-lg p-8 text-center hover:border-medical-blue/50 transition-colors">
-                <div className="space-y-4">
-                  <div className="flex justify-center space-x-4">
+              <div className="border-2 border-dashed border-medical-blue/30 rounded-lg p-4 sm:p-6 md:p-8 text-center hover:border-medical-blue/50 transition-colors">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3 md:gap-4">
                     <Button
                       onClick={() => fileInputRef.current?.click()}
-                      className="medical-gradient text-white"
-                      size="lg"
+                      className="medical-gradient text-white text-sm sm:text-base"
+                      size="sm"
                     >
-                      <Upload className="h-5 w-5 mr-2" />
-                      Upload Prescription Image
+                      <Upload className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Upload Prescription Image</span>
+                      <span className="sm:hidden">Upload</span>
                     </Button>
                     
                     <Button
                       onClick={handleCameraCapture}
                       variant="outline"
-                      size="lg"
-                      className="border-medical-teal text-medical-teal hover:bg-medical-teal/10"
+                      size="sm"
+                      className="border-medical-teal text-medical-teal hover:bg-medical-teal/10 text-sm sm:text-base"
                     >
-                      <Camera className="h-5 w-5 mr-2" />
-                      Take Photo
+                      <Camera className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Take Photo</span>
+                      <span className="sm:hidden">Camera</span>
                     </Button>
                   </div>
                   
-                  <p className="text-sm text-muted-foreground">
-                    Supported formats: JPG, PNG • Max size: 10MB
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Formats: JPG, PNG • Max: 10MB
                   </p>
                 </div>
               </div>
@@ -179,20 +181,20 @@ const PrescriptionUpload = ({ onDrugExtracted }: PrescriptionUploadProps) => {
               />
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {/* Preview */}
               {previewUrl && (
                 <div className="relative">
                   <img
                     src={previewUrl}
                     alt="Prescription preview"
-                    className="max-h-64 mx-auto rounded-lg shadow-md"
+                    className="max-h-48 sm:max-h-64 mx-auto rounded-lg shadow-md"
                   />
                   <Button
                     onClick={clearUpload}
                     variant="destructive"
                     size="sm"
-                    className="absolute top-2 right-2"
+                    className="absolute top-2 right-2 h-8 w-8 p-0"
                   >
                     ✕
                   </Button>
@@ -201,10 +203,10 @@ const PrescriptionUpload = ({ onDrugExtracted }: PrescriptionUploadProps) => {
               
               {/* Processing Status */}
               {isUploading && (
-                <div className="text-center py-4">
-                  <div className="animate-pulse-glow inline-flex items-center gap-2 px-4 py-2 bg-medical-blue/10 rounded-full">
+                <div className="text-center py-3 sm:py-4">
+                  <div className="animate-pulse-glow inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-medical-blue/10 rounded-full">
                     <div className="w-2 h-2 bg-medical-blue rounded-full animate-pulse"></div>
-                    <span className="text-medical-blue font-medium">Processing prescription...</span>
+                    <span className="text-medical-blue font-medium text-xs sm:text-sm">Processing prescription...</span>
                   </div>
                 </div>
               )}

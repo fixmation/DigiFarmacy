@@ -22,7 +22,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-blue-lg z-50 md:hidden">
-      <div className="flex justify-around items-center py-2">
+      <div className="flex justify-around items-center py-2 px-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -33,14 +33,14 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => onTabChange(tab.id)}
-              className={`flex flex-col items-center space-y-1 px-2 py-2 min-w-0 ${
+              className={`flex flex-col items-center gap-0.5 px-1 sm:px-2 py-2 min-w-0 text-xs sm:text-sm ${
                 isActive 
                   ? 'text-medical-blue bg-blue-50' 
                   : 'text-gray-600 hover:text-medical-blue'
               }`}
             >
-              <Icon className="h-5 w-5" />
-              <span className="text-xs font-medium truncate">{tab.label}</span>
+              <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="font-medium truncate">{tab.label}</span>
             </Button>
           );
         })}

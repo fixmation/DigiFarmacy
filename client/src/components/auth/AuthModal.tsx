@@ -189,7 +189,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto shadow-blue-xl">
+      <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto shadow-blue-xl p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Welcome to DigiFarmacy</DialogTitle>
           <DialogDescription>
@@ -247,8 +247,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <form onSubmit={handleSignUp} className="space-y-4">
               {/* Sign up has been disabled for public users. Registrations for pharmacies and labs are by invitation/verification only. */}
               
-              <div className="space-y-2">
-                <Label htmlFor="signup-role">Account Type</Label>
+              <div className="space-y-2 sm:space-y-3">
+                <Label htmlFor="signup-role" className="text-sm sm:text-base">Account Type</Label>
                 <Select value={signUpData.role} onValueChange={(value) => handleRoleChange(value as 'customer' | 'pharmacy' | 'laboratory')}>
                   <SelectTrigger>
                     <SelectValue />

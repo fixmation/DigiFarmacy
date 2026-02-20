@@ -71,31 +71,31 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-[#7aebcf] pb-16 md:pb-0">
+    <div className="min-h-screen bg-gradient-to-br from-white to-[#7aebcf] pb-20 md:pb-0">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-white/20 sticky top-0 z-40 shadow-blue-md">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#00bfff] to-green-500 rounded-xl flex items-center justify-center shadow-blue-sm">
-                <MapPin className="h-6 w-6 text-white" />
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-1">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#00bfff] to-green-500 rounded-xl flex items-center justify-center shadow-blue-sm flex-shrink-0">
+                <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-[#00bfff] to-green-600 bg-clip-text text-transparent">
+                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#00bfff] to-green-600 bg-clip-text text-transparent">
                   DigiFarmacy
                 </h1>
-                <p className="text-sm text-slate-600">{t('hero.title')}</p>
+                <p className="text-xs sm:text-sm text-slate-600">{t('hero.title')}</p>
               </div>
               <div className="sm:hidden">
-                <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-                  DigiFarmacy
+                <h1 className="text-base font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+                  DiFarmacy
                 </h1>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4 flex-wrap gap-1">
               {/* Desktop Location Search */}
-              <div className="hidden md:block max-w-xs md:max-w-md">
+              <div className="hidden lg:block max-w-xs lg:max-w-md">
                 <LocationSearch
                   onLocationSelect={handleLocationSelect}
                   placeholder="Search location..."
@@ -113,8 +113,8 @@ const Index = () => {
               <LanguageSelector />
 
               {user && profile ? (
-                <div className="flex items-center space-x-1 md:space-x-2">
-                  <Badge variant="outline" className="hidden sm:flex items-center gap-1 text-xs">
+                <div className="flex items-center space-x-0.5 sm:space-x-1 md:space-x-2 flex-wrap">
+                  <Badge variant="outline" className="hidden sm:flex items-center gap-1 text-xs py-1">
                     <User className="h-3 w-3" />
                     {profile.role}
                   </Badge>
@@ -170,27 +170,27 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-4 md:py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-2 sm:py-4 md:py-8">
         <div className="animate-fade-in">
           {/* Hero Section */}
-          <div className="text-center mb-8 md:mb-12">
-            <h2 className="text-3xl md:text-4xl lg:text-6xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+          <div className="text-center mb-6 sm:mb-8 md:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 md:mb-6 bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
               AI-Powered Healthcare
             </h2>
-            <p className="text-lg md:text-xl text-slate-700 max-w-2xl mx-auto leading-relaxed px-4">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-700 max-w-2xl mx-auto leading-relaxed px-3 sm:px-4">
               Intelligent reporting for comprehensive medication management.
             </p>
           </div>
 
           {/* Enhanced Feature Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 mb-6 sm:mb-8 md:mb-12">
             <Card className="bg-white/90 backdrop-blur-sm border border-gray-200 hover:scale-105 transition-all duration-300 animate-scale-in shadow-lg">
               <CardHeader className="text-center p-4 md:p-6">
                 <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-orange-500 to-green-500 rounded-2xl flex items-center justify-center mx-auto mb-2 md:mb-4 shadow-blue-sm">
                   <MapPin className="h-6 w-6 md:h-8 md:w-8 text-white" />
                 </div>
-                <CardTitle className="text-slate-800 text-sm md:text-base">Find Pharmacies</CardTitle>
-                <CardDescription className="text-xs md:text-sm hidden md:block">
+                <CardTitle className="text-slate-800 text-xs sm:text-sm md:text-base">Find Pharmacies</CardTitle>
+                <CardDescription className="text-xs hidden lg:block">
                   Smart location search with filters and real-time availability
                 </CardDescription>
               </CardHeader>
@@ -309,7 +309,7 @@ const Index = () => {
             <CardContent className="p-0">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="p-4 md:p-6 pb-0">
-                  <TabsList className="hidden md:grid w-full grid-cols-5 bg-white border border-gray-200 shadow-sm">
+                  <TabsList className="hidden md:grid w-full grid-cols-5 gap-1 bg-white border border-gray-200 shadow-sm">
                     <TabsTrigger value="map" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-blue-50">
                       <MapPin className="h-4 w-4 mr-2" />
                       Map

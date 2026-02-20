@@ -158,17 +158,17 @@ const PharmacyMap = ({ searchQuery }: PharmacyMapProps) => {
         </div>
       ) : null}
       {!loading && profile && profile.role !== 'customer' && (
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           {/* Map Section */}
-          <div className="lg:col-span-2">
-            <Card className="h-[500px]">
+          <div className="lg:col-span-2 order-2 lg:order-1">
+            <Card className="h-[300px] sm:h-[400px] lg:h-[500px]">
               <CardContent className="p-0 h-full relative">
                 {!mapboxToken ? (
                   <div className="flex items-center justify-center h-full bg-gradient-to-br from-medical-blue/10 to-medical-green/10">
-                    <div className="text-center space-y-4 p-8">
-                      <MapPin className="h-16 w-16 text-medical-blue mx-auto" />
-                      <h3 className="text-xl font-semibold">Interactive Map</h3>
-                      <p className="text-muted-foreground max-w-md">
+                    <div className="text-center space-y-3 sm:space-y-4 p-4 sm:p-8">
+                      <MapPin className="h-12 sm:h-16 w-12 sm:w-16 text-medical-blue mx-auto" />
+                      <h3 className="text-lg sm:text-xl font-semibold">Interactive Map</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
                         Map is not available. Please configure the Mapbox token in Admin Dashboard API Settings.
                       </p>
                     </div>
@@ -184,23 +184,23 @@ const PharmacyMap = ({ searchQuery }: PharmacyMapProps) => {
           </div>
 
           {/* Pharmacy List */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-medical-blue" />
-              Registered Pharmacies ({filteredPharmacies.length})
+          <div className="space-y-3 sm:space-y-4 order-1 lg:order-2">
+            <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
+              <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-medical-blue" />
+              <span className="truncate">Pharmacies ({filteredPharmacies.length})</span>
             </h3>
             
             {mapLoading ? (
               <div className="text-center py-8">Loading pharmacies...</div>
             ) : (
-              <div className="space-y-3 max-h-[450px] overflow-y-auto">
+              <div className="space-y-2 sm:space-y-3 max-h-[400px] sm:max-h-[500px] lg:max-h-[450px] overflow-y-auto">
                 {filteredPharmacies.length === 0 ? (
                   <Card className="glass-card">
                     <CardContent className="pt-6">
                       <div className="text-center text-muted-foreground">
-                        <MapPin className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                        <p>No registered pharmacies found.</p>
-                        <p className="text-sm">Try adjusting your search criteria.</p>
+                        <MapPin className="h-10 sm:h-12 w-10 sm:w-12 mx-auto mb-3 sm:mb-4 text-gray-300" />
+                        <p className="text-sm sm:text-base">No registered pharmacies found.</p>
+                        <p className="text-xs sm:text-sm">Try adjusting your search criteria.</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -208,61 +208,55 @@ const PharmacyMap = ({ searchQuery }: PharmacyMapProps) => {
                   filteredPharmacies.map((pharmacy) => (
                     <Card 
                       key={pharmacy.id} 
-                      className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+                      className={`cursor-pointer transition-all duration-200 hover:shadow-lg p-3 sm:p-4 ${
                         selectedPharmacy?.id === pharmacy.id 
                           ? 'ring-2 ring-medical-blue shadow-lg' 
                           : 'hover:ring-1 hover:ring-medical-blue/50'
                       }`}
                       onClick={() => setSelectedPharmacy(pharmacy)}
                     >
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-lg">{pharmacy.business_name}</CardTitle>
-                          <div className="flex items-center gap-1">
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-medium">{pharmacy.rating || 'N/A'}</span>
+                      <div className="space-y-2 sm:space-y-3">
+                        <div className="flex justify-between items-start gap-2">
+                          <h4 className="text-sm sm:text-base font-semibold line-clamp-2">{pharmacy.business_name}</h4>
+                          <div className="flex items-center gap-0.5 flex-shrink-0">
+                            <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-xs sm:text-sm font-medium">{pharmacy.rating || 'N/A'}</span>
                           </div>
                         </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <p className="text-sm text-muted-foreground flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          {pharmacy.address} {pharmacy.distance && `• ${pharmacy.distance}`}
+                        
+                        <p className="text-xs sm:text-sm text-muted-foreground flex items-start gap-1">
+                          <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5" />
+                          <span className="line-clamp-2">{pharmacy.address} {pharmacy.distance && `• ${pharmacy.distance}`}</span>
                         </p>
                         
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-medical-green" />
+                        <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                          <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-medical-green flex-shrink-0" />
                           <span>{getOperatingHours(pharmacy.operating_hours)}</span>
                         </div>
                         
                         {pharmacy.contact_phone && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Phone className="h-4 w-4 text-medical-blue" />
+                          <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                            <Phone className="h-3 w-3 sm:h-4 sm:w-4 text-medical-blue flex-shrink-0" />
                             <span>{pharmacy.contact_phone}</span>
                           </div>
                         )}
                         
-                        <div className="flex gap-2">
-                          <Badge variant="secondary" className="bg-medical-green/10 text-medical-green">
+                        <div className="flex flex-wrap gap-1 sm:gap-2 pt-1 sm:pt-2">
+                          <Badge variant="secondary" className="bg-medical-green/10 text-medical-green text-xs">
                             Verified
                           </Badge>
                           {isOpen24Hours(pharmacy.operating_hours) && (
-                            <Badge variant="secondary" className="bg-medical-green/10 text-medical-green">
+                            <Badge variant="secondary" className="bg-medical-green/10 text-medical-green text-xs">
                               24/7
                             </Badge>
                           )}
                         </div>
-                        
-                        <Button 
-                          className="w-full medical-gradient text-white hover:opacity-90"
-                          size="sm"
-                        >
-                          Get Directions
-                        </Button>
-                      </CardContent>
+                      </div>
                     </Card>
                   ))
                 )}
+              </div>
+            )}
               </div>
             )}
           </div>
