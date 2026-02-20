@@ -149,7 +149,7 @@ const Index = () => {
                     </Button>
                     <div className="absolute -top-2 -right-2">
                       <div className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold transform rotate-12 shadow-sm">
-                        Free
+                        Pro
                       </div>
                     </div>
                   </div>
