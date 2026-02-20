@@ -113,18 +113,18 @@ const Index = () => {
               <LanguageSelector />
 
               {user && profile ? (
-                <div className="flex items-center space-x-0.5 sm:space-x-1 md:space-x-2 flex-wrap">
-                  <Badge variant="outline" className="hidden sm:flex items-center gap-1 text-xs py-1">
-                    <User className="h-3 w-3" />
-                    {profile.role}
-                  </Badge>
-                  <Button
+                <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+                  <span className="text-sm font-medium text-gray-700 hidden sm:inline">
+                    Welcome, {profile.fullName.split(' ')[0]}
+                  </span>
+                   <Button
                     variant="outline"
-                    onClick={() => navigate('/dashboard')}
-                    className="hidden sm:flex items-center gap-2 text-sm"
                     size="sm"
+                    onClick={() => navigate('/ops-dashboard')}
+                    className="flex items-center gap-1 text-sm shadow-blue-sm border-blue-200 hover:bg-blue-50 text-medical-blue"
                   >
-                    Dashboard
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span className="hidden sm:inline">Ops Dashboard</span>
                   </Button>
                   <Button
                     variant="ghost"

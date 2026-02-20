@@ -23,6 +23,7 @@ import VoiceAssistant from "./pages/VoiceAssistant";
 import Workflow from "./pages/Workflow";
 import Login from "./pages/Login";
 import RoleMiddleware from "./components/auth/RoleMiddleware";
+import OpsDashboard from "./pages/OpsDashboard"; // Import the new dashboard
 
 const queryClient = new QueryClient();
 
@@ -53,7 +54,26 @@ const App = () => (
               <Route path="/admin-auth" element={<AdminAuth />} />
 
               {/* Protected routes - require pharmacy/lab/admin roles */}
-              <Route path="/dashboard" element={<RoleMiddleware><Dashboard /></RoleMiddleware>} />
+              <Route
+                path="/ops-dashboard"
+                element={
+                  <RoleMiddleware
+                    roles={['pharmacy', 'admin', 'developer_admin']}
+                  >
+                    <OpsDashboard />
+                  </RoleMiddleware>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <RoleMiddleware
+                    roles={['pharmacy', 'laboratory', 'admin', 'developer_admin']}
+                  >
+                    <Dashboard />
+                  </RoleMiddleware>
+                }
+              />
               <Route path="/contact" element={<RoleMiddleware><Contact /></RoleMiddleware>} />
               <Route path="/pdpa" element={<RoleMiddleware><PDPA /></RoleMiddleware>} />
               <Route path="/drug-info" element={<RoleMiddleware><DrugInfo /></RoleMiddleware>} />
