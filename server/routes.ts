@@ -116,7 +116,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Prescription upload route
+  // =================================================================
+  // PATIENT-FACING PRESCRIPTION UPLOAD (DISABLED)
+  // This endpoint is disabled to comply with the pharmacy-only model.
+  // The pharmacist-specific audit endpoint should be used instead.
+  // =================================================================
+  /*
   app.post("/api/prescriptions/upload", async (req, res) => {
     try {
       // For now, just return success without actual file processing
@@ -131,6 +136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to upload prescription" });
     }
   });
+  */
 
   // Pharmacist audit route - accepts an image (base64) and returns OCR + AI analyses
   app.post("/api/prescriptions/audit", isPharmacist, async (req, res) => {
