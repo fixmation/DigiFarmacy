@@ -5,7 +5,15 @@
 import React from 'react';
 import { Fridge, AlertTriangle, PackageCheck, Thermometer } from 'lucide-react';
 import { usePeakHourQueue } from '../hooks/usePeakHourQueue'; // Assuming hook is available
-import { storage, MedicineBatch } from '../../server/storage'; // For mock data
+
+// Mock interface for dashboard display
+interface MedicineBatch {
+  id: string;
+  drugName: string;
+  batchNumber: string;
+  expiryDate: string;
+  quantity: number;
+}
 
 // --- Widget Components ---
 
@@ -104,8 +112,24 @@ const OpsDashboard: React.FC = () => {
   const [temperature, setTemperature] = React.useState(7.2);
 
   React.useEffect(() => {
-    // Simulate fetching data
-    storage.getExpiringBatches(60).then(setExpiringStock);
+    // Mock expiring stock data
+    const mockExpiringStock: MedicineBatch[] = [
+      {
+        id: '1',
+        drugName: 'Amoxicillin 500mg',
+        batchNumber: 'AMOX-2025-001',
+        expiryDate: '2025-03-15',
+        quantity: 45,
+      },
+      {
+        id: '2',
+        drugName: 'Paracetamol 500mg',
+        batchNumber: 'PARA-2025-002',
+        expiryDate: '2025-04-20',
+        quantity: 120,
+      },
+    ];
+    setExpiringStock(mockExpiringStock);
 
     // Simulate real-time temperature updates
     const tempInterval = setInterval(() => {
