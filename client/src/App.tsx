@@ -52,6 +52,11 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/admin-auth" element={<AdminAuth />} />
+              <Route path="/how-to-use" element={<HowToUse />} />
+              <Route path="/pdpa" element={<PDPA />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/contact" element={<Contact />} />
 
               {/* Protected routes - require pharmacy/lab/admin roles */}
               <Route
@@ -74,14 +79,9 @@ const App = () => (
                   </RoleMiddleware>
                 }
               />
-              <Route path="/contact" element={<RoleMiddleware><Contact /></RoleMiddleware>} />
-              <Route path="/pdpa" element={<RoleMiddleware><PDPA /></RoleMiddleware>} />
               <Route path="/drug-info" element={<RoleMiddleware><DrugInfo /></RoleMiddleware>} />
-              <Route path="/how-to-use" element={<RoleMiddleware><HowToUse /></RoleMiddleware>} />
               <Route path="/lab-booking" element={<RoleMiddleware><LabBooking /></RoleMiddleware>} />
               <Route path="/prescription-scanner" element={<RoleMiddleware><PrescriptionScanner /></RoleMiddleware>} />
-              <Route path="/privacy" element={<RoleMiddleware><Privacy /></RoleMiddleware>} />
-              <Route path="/terms" element={<RoleMiddleware><TermsOfService /></RoleMiddleware>} />
               <Route path="/voice-assistant" element={<RoleMiddleware><VoiceAssistant /></RoleMiddleware>} />
               <Route path="/workflow" element={<RoleMiddleware><Workflow /></RoleMiddleware>} />
               <Route path="*" element={<NotFound />} />

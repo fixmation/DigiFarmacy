@@ -211,7 +211,7 @@ const HowToUse: React.FC = () => {
                 </Button>
                 <Button 
                   variant="outline"
-                  onClick={() => navigate('/pdpa')}
+                  onClick={() => navigate('/privacy')}
                 >
                   Privacy Policy
                 </Button>
