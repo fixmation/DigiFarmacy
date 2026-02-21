@@ -13,6 +13,8 @@ interface MedicineBatch {
   batchNumber: string;
   expiryDate: string;
   quantity: number;
+  costPrice: number;
+  stockCount: number;
 }
 
 // --- Widget Components ---

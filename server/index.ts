@@ -1,9 +1,10 @@
 import 'dotenv/config';
+import bcrypt from 'bcrypt';
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import path from 'path'; // Add this line
+import path from 'path';
 import { createServer, type Server } from "http";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -37,12 +38,22 @@ app.use(passport.session());
 passport.use(
   new LocalStrategy(async (username, password, done) => {
     try {
-      // In a real application, you should verify the password.
-      // For this demo, we'll just look up the user.
       const user = await storage.getProfileByEmail(username);
       if (!user) {
         return done(null, false, { message: 'Incorrect username.' });
       }
+      
+      // Verify password
+      const passwordHash = await (storage as any).getPasswordHash(user.id);
+      if (!passwordHash) {
+        return done(null, false, { message: 'Password not set.' });
+      }
+      
+      const passwordMatch = await bcrypt.compare(password, passwordHash);
+      if (!passwordMatch) {
+        return done(null, false, { message: 'Incorrect password.' });
+      }
+      
       return done(null, user);
     } catch (err) {
       return done(err);
@@ -99,13 +110,23 @@ async function main() {
   // Passport configuration
   passport.use(
     new LocalStrategy(async (username, password, done) => {
-      // In a real application, you should verify the password.
-      // For this demo, we'll just look up the user.
       try {
         const user = await storage.getProfileByEmail(username);
         if (!user) {
           return done(null, false, { message: 'Incorrect username.' });
         }
+        
+        // Verify password
+        const passwordHash = await (storage as any).getPasswordHash(user.id);
+        if (!passwordHash) {
+          return done(null, false, { message: 'Password not set.' });
+        }
+        
+        const passwordMatch = await bcrypt.compare(password, passwordHash);
+        if (!passwordMatch) {
+          return done(null, false, { message: 'Incorrect password.' });
+        }
+        
         return done(null, user);
       } catch (err) {
         return done(err);

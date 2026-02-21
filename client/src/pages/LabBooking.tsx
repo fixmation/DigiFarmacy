@@ -47,10 +47,16 @@ const LabBooking: React.FC = () => {
     queryFn: () => fetch('/api/laboratories')
       .then(res => res.json())
       .then(labs => {
-        const labsWithDistance = labs.map(lab => ({
-          ...lab,
-          distance: calculateDistance(customerLocation, lab.location)
-        })).sort((a, b) => a.distance - b.distance);
+        const labsWithDistance = labs.map(lab => {
+          // Ensure lab has location data with fallback to Colombo coordinates
+          const labLocation = lab.location || { lat: 6.9271, lng: 79.8612 };
+          const distance = calculateDistance(customerLocation, labLocation);
+          return {
+            ...lab,
+            location: labLocation,
+            distance
+          };
+        }).sort((a, b) => a.distance - b.distance);
         
         // Initialize map with laboratory data
         if (!mapLoaded && labs.length > 0) {

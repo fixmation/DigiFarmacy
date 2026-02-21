@@ -5,6 +5,7 @@ import { z } from "zod";
 import { insertLabBookingSchema, insertPharmacyDetailsSchema, insertLaboratoryDetailsSchema, insertProfileSchema } from "@shared/schema";
 import drugRoutes from "./routes/drugs";
 import passport from "passport";
+import bcrypt from "bcrypt";
 
 // Middleware to check if the user is authenticated and has a specific role
 const isPharmacist = (req: any, res: any, next: any) => {
@@ -18,6 +19,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes for the lab booking application
   
   // Auth routes
+  app.post('/api/signup', async (req, res) => {
+    try {
+      const { email, password, fullName, phone, role } = req.body;
+      
+      if (!email || !password || !fullName || !role) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+      
+      if (password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getProfileByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({ error: 'Email already registered' });
+      }
+      
+      // Validate role
+      if (!['pharmacy', 'laboratory'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role. Must be pharmacy or laboratory' });
+      }
+      
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 10);
+      
+      // Create profile with proper role - pass directly without Zod validation
+      const profileData: any = {
+        email,
+        fullName,
+        phone: phone || null,
+        role,
+        status: 'pending',
+        preferredLanguage: 'en'
+      };
+      
+      const profile = await storage.createProfile(profileData);
+      
+      // Store password hash
+      await (storage as any).setPassword(profile.id, passwordHash);
+      
+      res.json({
+        success: true,
+        user: {
+          id: profile.id,
+          email: profile.email,
+          fullName: profile.fullName,
+          phone: profile.phone,
+          role: profile.role,
+          status: profile.status,
+          preferredLanguage: profile.preferredLanguage
+        }
+      });
+    } catch (error) {
+      console.error('Signup error:', error);
+      res.status(500).json({ error: 'Failed to create account' });
+    }
+  });
+  
   app.post('/api/login', passport.authenticate('local'), async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ success: false, message: "Authentication failed." });
@@ -426,6 +486,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(pharmacy);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch pharmacy details" });
+    }
+  });
+
+  // Locations endpoint - return pharmacy and laboratory locations for mapping
+  app.get("/api/locations", async (req, res) => {
+    try {
+      const pharmacies = await storage.listPharmacies();
+      const laboratories = await storage.listLaboratories();
+      
+      const pharmacyLocations = pharmacies.map(p => ({
+        id: p.id,
+        type: 'pharmacy',
+        name: p.businessName,
+        lat: parseFloat(p.latitude as any),
+        lng: parseFloat(p.longitude as any),
+        address: p.address,
+        phone: p.contactPhone,
+        email: p.contactEmail,
+      }));
+      
+      const labLocations = laboratories.map(l => ({
+        id: l.id,
+        type: 'laboratory',
+        name: l.businessName,
+        lat: l.location?.lat || 6.9271,
+        lng: l.location?.lng || 79.8612,
+        address: l.address,
+        phone: l.contactPhone,
+        email: l.contactEmail,
+      }));
+      
+      res.json({
+        pharmacies: pharmacyLocations,
+        laboratories: labLocations,
+        total: pharmacyLocations.length + labLocations.length
+      });
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      res.status(500).json({ error: 'Failed to fetch locations' });
     }
   });
 

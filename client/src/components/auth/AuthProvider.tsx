@@ -72,33 +72,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
-      // For now, create a simple mock user
-      // In a real implementation, this would call your backend API
-      const newUser: AuthUser = {
-        id: `user_${Date.now()}`,
-        email
-      };
+      // Validate password
+      if (password.length < 8) {
+        toast.error('Password must be at least 8 characters');
+        throw new Error('Password too short');
+      }
+
+      // Call signup API
+      const res = await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName: userData.fullName || '',
+          phone: userData.phone || null,
+          role: userData.role || 'pharmacy'
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Signup failed');
+      }
+
+      const { user } = await res.json();
+      console.log("Auth: signUp - received user from API:", user);
       
       const newProfile: UserProfile = {
-        id: newUser.id,
-        email,
-        full_name: userData.fullName || '',
-        phone: userData.phone || null,
-        role: userData.role || 'pharmacy',
-        status: 'pending',
-        preferred_language: 'en'
+        id: user.id,
+        email: user.email,
+        full_name: user.fullName,
+        phone: user.phone,
+        role: user.role,
+        status: user.status,
+        preferred_language: user.preferredLanguage,
       };
 
-      // Store in localStorage for demo purposes
-      localStorage.setItem('digiFarmacy_user', JSON.stringify(newUser));
-      localStorage.setItem('digiFarmacy_profile', JSON.stringify(newProfile));
-      
-      setUser(newUser);
+      setUser({ id: user.id, email: user.email });
       setProfile(newProfile);
       
       toast.success('Account created successfully!');
     } catch (error) {
-      toast.error('Failed to create account');
+      const msg = error instanceof Error ? error.message : 'Failed to create account';
+      toast.error(msg);
       throw error;
     }
   };

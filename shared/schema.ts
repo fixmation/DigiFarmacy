@@ -145,6 +145,7 @@ export const prescriptionMedications = pgTable("prescription_medications", {
 
 // Insert schemas
 export const insertProfileSchema = createInsertSchema(profiles).omit({
+  id: true,
   createdAt: true,
   updatedAt: true,
 });

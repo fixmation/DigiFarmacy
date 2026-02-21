@@ -33,6 +33,11 @@ export interface MedicineBatch {
   location: string;
 }
 
+interface PasswordRecord {
+  userId: string;
+  passwordHash: string;
+}
+
 // Database storage interface
 export interface IStorage {
   // Users (legacy support)
@@ -111,6 +116,7 @@ export class MemStorage implements IStorage {
   private prescriptions: Prescription[] = [];
   private prescriptionMedications: PrescriptionMedication[] = [];
   private medicineBatches: MedicineBatch[] = [];
+  private passwordRecords: Map<string, PasswordRecord> = new Map();
 
   constructor() {
     this.initializeSampleData();
@@ -286,7 +292,7 @@ export class MemStorage implements IStorage {
       email: profile.email,
       fullName: profile.fullName,
       phone: profile.phone || null,
-      role: "customer" as any,
+      role: (profile.role as any) || "pharmacy",
       status: "pending" as any,
       preferredLanguage: "en" as any,
       createdAt: new Date(),
@@ -294,6 +300,15 @@ export class MemStorage implements IStorage {
     };
     this.profiles.push(newProfile);
     return newProfile;
+  }
+
+  async setPassword(userId: string, passwordHash: string): Promise<void> {
+    this.passwordRecords.set(userId, { userId, passwordHash });
+  }
+
+  async getPasswordHash(userId: string): Promise<string | null> {
+    const record = this.passwordRecords.get(userId);
+    return record?.passwordHash || null;
   }
 
   async getProfile(id: string): Promise<Profile | null> {
