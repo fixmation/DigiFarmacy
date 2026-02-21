@@ -160,9 +160,9 @@ const TermsOfService: React.FC = () => {
                 For questions about these Terms of Service, please contact us at:
               </p>
               <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                <p className="text-gray-700">Email: support@digifarmacy.com</p>
-                <p className="text-gray-700">Phone: +94 11 123 4567</p>
-                <p className="text-gray-700">Address: Hanyu Pharmacy, Puttalam 61300, Sri Lanka</p>
+                <p className="text-gray-700"><strong>Email:</strong> support@digifarmacy.com</p>
+                <p className="text-gray-700"><strong>Phone:</strong> +94 715883884</p>
+                <p className="text-gray-700"><strong>Developer:</strong> Fixmation Technologies, Puttalam 61300</p>
               </div>
             </section>
           </CardContent>

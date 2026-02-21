@@ -205,9 +205,9 @@ const Privacy = () => {
                 If you have any questions about this Privacy Policy or your data:
               </p>
               <div className="space-y-2 text-sm">
-                <p><strong>Email:</strong> privacy@digifarmacy.lk</p>
-                <p><strong>Phone:</strong> +94 11 123 4567</p>
-                <p><strong>Address:</strong> Hanyu Pharmacy, Puttalam 61300, Sri Lanka</p>
+                <p><strong>Email:</strong> support@digifarmacy.com</p>
+                <p><strong>Phone:</strong> +94 715883884</p>
+                <p><strong>Developer:</strong> Fixmation Technologies, Puttalam 61300</p>
               </div>
             </CardContent>
           </Card>
@@ -301,12 +301,9 @@ const Privacy = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h4 className="font-semibold mb-2">Developer Information</h4>
+                <h4 className="font-semibold mb-2">About DigiFarmacy</h4>
                 <p className="text-sm text-gray-600 mb-3">
-                  DigiFarmacy is developed and maintained by Fixmation Technologies (Pvt) Ltd.
-                </p>
-                <p className="text-sm text-gray-600">
-                  <strong>Website:</strong> <a href="https://www.fixmation.lk" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">www.fixmation.lk</a>
+                  DigiFarmacy is developed and maintained by Fixmation Technologies, based in Puttalam 61300, Sri Lanka.
                 </p>
               </div>
             </CardContent>
