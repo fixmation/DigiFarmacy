@@ -327,8 +327,10 @@ const Index = () => {
       {/* Mobile Navigation */}
       <MobileNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Mobile Footer Popup */}
-      <MobileFooterPopup />
+      {/* Mobile Footer Popup - Hidden on Desktop */}
+      <div className="md:hidden">
+        <MobileFooterPopup />
+      </div>
 
       {/* Desktop Footer */}
       <div className="hidden md:block">

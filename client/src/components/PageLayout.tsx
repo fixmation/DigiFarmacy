@@ -51,8 +51,10 @@ const PageLayout: React.FC<PageLayoutProps> = ({
         {children}
       </main>
 
-      {/* Footer */}
-      <Footer />
+      {/* Footer - Hidden on Mobile */}
+      <div className="hidden md:block">
+        <Footer />
+      </div>
     </div>
   );
 };
