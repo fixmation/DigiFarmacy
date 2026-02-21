@@ -65,7 +65,7 @@ const SubscriptionPricing: React.FC = () => {
   ];
 
   return (
-    <div className="w-full py-8 md:py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="w-full py-8 md:py-16 px-4 sm:px-6 lg:px-8 bg-transparent">
       {/* Header */}
       <div className="text-center mb-12 md:mb-16">
         <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
@@ -84,14 +84,19 @@ const SubscriptionPricing: React.FC = () => {
             return (
               <Card
                 key={sub.id}
-                className={`relative border transition-all duration-300 hover:shadow-2xl overflow-hidden backdrop-blur-xl ${
+                style={{ 
+                  backgroundColor: sub.highlighted 
+                    ? 'rgba(59, 130, 246, 0.25)' 
+                    : 'rgba(168, 85, 247, 0.25)'
+                }}
+                className={`relative border transition-all duration-300 hover:shadow-2xl overflow-hidden backdrop-blur-md ${
                   sub.highlighted
-                    ? 'border-white/30 bg-white/20 shadow-lg hover:shadow-blue-lg hover:border-blue-300/50'
-                    : 'border-white/30 bg-white/15 hover:border-green-300/50 hover:shadow-2xl'
+                    ? 'border-blue-300/60 shadow-lg hover:shadow-blue-lg hover:border-blue-400/80'
+                    : 'border-violet-300/60 hover:border-violet-400/80 hover:shadow-2xl'
                 }`}
               >
                 {/* Glassmorphism Background Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-white/10 pointer-events-none rounded-lg"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-transparent pointer-events-none rounded-lg"></div>
 
                 {/* Badge */}
                 <div className="absolute top-4 right-4 z-10">
@@ -123,7 +128,7 @@ const SubscriptionPricing: React.FC = () => {
                   </div>
 
                   {/* Pricing */}
-                  <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-lg p-4 mb-4">
+                  <div className="backdrop-blur-sm border border-white/30 rounded-lg p-4 mb-4 bg-transparent">
                     <div className="flex items-baseline gap-1">
                       <span className="text-sm font-semibold text-gray-700">{sub.currency}</span>
                       <span className="text-4xl font-bold text-gray-900">{sub.price}</span>
@@ -137,7 +142,7 @@ const SubscriptionPricing: React.FC = () => {
 
                 <CardContent className="relative z-10">
                   {/* Features List */}
-                  <div className="mb-6 space-y-3 bg-white/30 backdrop-blur-sm border border-white/30 rounded-lg p-4">
+                  <div className="mb-6 space-y-3 backdrop-blur-sm border border-white/30 rounded-lg p-4 bg-transparent">
                     {sub.features.map((feature, index) => (
                       <div key={index} className="flex items-start gap-3">
                         <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
@@ -171,7 +176,7 @@ const SubscriptionPricing: React.FC = () => {
       </div>
 
       {/* FAQ / Additional Info */}
-      <div className="max-w-3xl mx-auto bg-white/20 backdrop-blur-xl border border-white/30 rounded-lg p-6 md:p-8">
+      <div className="max-w-3xl mx-auto backdrop-blur-xl border border-white/30 rounded-lg p-6 md:p-8 bg-transparent">
         <h3 className="text-lg font-bold text-gray-900 mb-4">What's Included?</h3>
         <div className="space-y-3">
           <div className="flex gap-3">
