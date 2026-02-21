@@ -151,13 +151,13 @@ const PharmacyMap = ({ searchQuery }: PharmacyMapProps) => {
 
   return (
     <div className="p-6">
-      {loading || !profile || profile.role === 'customer' ? (
+      {loading || !profile || !['pharmacy', 'laboratory', 'admin', 'developer_admin'].includes(profile.role) ? (
         <div className="text-center p-8 bg-white/80 border rounded">
           <h3 className="text-lg font-semibold">Please sign in</h3>
           <p className="text-sm text-muted-foreground">Pharmacy finder is available to verified pharmacists, laboratory staff and admins only. Please sign in to continue.</p>
         </div>
       ) : null}
-      {!loading && profile && profile.role !== 'customer' && (
+      {!loading && profile && ['pharmacy', 'laboratory', 'admin', 'developer_admin'].includes(profile.role) && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           {/* Map Section */}
           <div className="lg:col-span-2 order-2 lg:order-1">

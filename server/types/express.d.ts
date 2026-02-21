@@ -14,7 +14,7 @@ declare global {
       email: string;
       fullName: string;
       phone: string | null;
-      role: 'pharmacy' | 'customer' | 'admin' | 'laboratory' | 'developer_admin';
+      role: 'pharmacy' | 'admin' | 'laboratory' | 'developer_admin';
       status: 'pending' | 'verified' | 'suspended' | 'rejected';
       preferredLanguage: 'en' | 'si' | 'ta' | null;
       createdAt: Date | null;

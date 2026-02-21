@@ -6,7 +6,7 @@ interface UserProfile {
   email: string;
   full_name: string;
   phone: string | null;
-  role: 'customer' | 'pharmacy' | 'laboratory' | 'admin' | 'developer_admin';
+  role: 'pharmacy' | 'laboratory' | 'admin' | 'developer_admin';
   status: 'pending' | 'verified' | 'suspended' | 'rejected';
   preferred_language: 'en' | 'si' | 'ta';
 }
@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         full_name: userData.fullName || '',
         phone: userData.phone || null,
-        role: userData.role || 'customer',
+        role: userData.role || 'pharmacy',
         status: 'pending',
         preferred_language: 'en'
       };

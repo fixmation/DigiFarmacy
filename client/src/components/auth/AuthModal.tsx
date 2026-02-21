@@ -33,7 +33,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     confirmPassword: '',
     fullName: '',
     phone: '',
-    role: 'customer' as 'customer' | 'pharmacy' | 'laboratory',
+    role: 'pharmacy' as 'pharmacy' | 'laboratory',
     language: 'en' as 'en' | 'si' | 'ta',
     // Pharmacy/Laboratory specific fields
     businessName: '',
@@ -76,7 +76,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setSignUpData({ ...signUpData, district: districtName, province: getProvinceByDistrict(districtName) });
   };
 
-  const handleRoleChange = (role: 'customer' | 'pharmacy' | 'laboratory') => {
+  const handleRoleChange = (role: 'pharmacy' | 'laboratory') => {
     setSignUpData({ 
       ...signUpData, 
       role,
@@ -249,12 +249,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               
               <div className="space-y-2 sm:space-y-3">
                 <Label htmlFor="signup-role" className="text-sm sm:text-base">Account Type</Label>
-                <Select value={signUpData.role} onValueChange={(value) => handleRoleChange(value as 'customer' | 'pharmacy' | 'laboratory')}>
+                <Select value={signUpData.role} onValueChange={(value) => handleRoleChange(value as 'pharmacy' | 'laboratory')}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="customer">Customer</SelectItem>
                     <SelectItem value="pharmacy">Pharmacy</SelectItem>
                     <SelectItem value="laboratory">Laboratory</SelectItem>
                   </SelectContent>

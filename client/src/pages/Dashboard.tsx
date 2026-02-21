@@ -1,6 +1,5 @@
 
 import { useAuth } from "@/components/auth/AuthProvider";
-import { CustomerDashboard } from "@/components/dashboard/CustomerDashboard";
 import { PharmacyDashboard } from "@/components/dashboard/PharmacyDashboard";
 import { LaboratoryDashboard } from "@/components/dashboard/LaboratoryDashboard";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
@@ -50,8 +49,6 @@ const Dashboard = () => {
 
   // Route to appropriate dashboard based on user role
   switch (profile.role) {
-    case 'customer':
-      return <CustomerDashboard />;
     case 'pharmacy':
       return <PharmacyDashboard />;
     case 'laboratory':
