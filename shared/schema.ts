@@ -184,6 +184,57 @@ export const insertPrescriptionMedicationSchema = createInsertSchema(prescriptio
   createdAt: true,
 });
 
+// Subscription status
+export const subscriptionStatusEnum = ["ACTIVE", "PAUSED", "EXPIRED", "CANCELLED"] as const;
+export type SubscriptionStatus = typeof subscriptionStatusEnum[number];
+
+// Subscriptions table for Google Play billing
+export const subscriptions = pgTable("subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  businessType: text("business_type").notNull().$type<"pharmacy" | "laboratory">(),
+  skuId: text("sku_id").notNull(),
+  purchaseToken: text("purchase_token").notNull().unique(),
+  orderId: text("order_id").notNull().unique(),
+  status: text("status").notNull().$type<SubscriptionStatus>().default("ACTIVE"),
+  purchaseDate: timestamp("purchase_date").notNull(),
+  expiryDate: timestamp("expiry_date").notNull(),
+  renewalDate: timestamp("renewal_date"),
+  isAutoRenew: boolean("is_auto_renew").default(true),
+  priceAmountMicros: integer("price_amount_micros").notNull(),
+  currencyCode: text("currency_code").default("LKR"),
+  lastVerifiedAt: timestamp("last_verified_at"),
+  googleResponse: jsonb("google_response"),
+  cancellationDate: timestamp("cancellation_date"),
+  cancellationReason: text("cancellation_reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Purchase events audit log
+export const purchaseEvents = pgTable("purchase_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  subscriptionId: uuid("subscription_id").notNull().references(() => subscriptions.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  eventType: text("event_type").notNull().$type<"PURCHASE" | "RENEWAL" | "CANCELLATION" | "PAUSE" | "RESUME" | "REFUND">(),
+  eventData: jsonb("event_data"),
+  googleNotificationId: text("google_notification_id"),
+  processedAt: timestamp("processed_at"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPurchaseEventSchema = createInsertSchema(purchaseEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Profile = typeof profiles.$inferSelect;
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
@@ -205,6 +256,12 @@ export type InsertPrescription = z.infer<typeof insertPrescriptionSchema>;
 
 export type PrescriptionMedication = typeof prescriptionMedications.$inferSelect;
 export type InsertPrescriptionMedication = z.infer<typeof insertPrescriptionMedicationSchema>;
+
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+
+export type PurchaseEvent = typeof purchaseEvents.$inferSelect;
+export type InsertPurchaseEvent = z.infer<typeof insertPurchaseEventSchema>;
 
 // Legacy compatibility - keeping the original users table structure
 export const users = pgTable("users", {

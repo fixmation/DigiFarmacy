@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { insertLabBookingSchema, insertPharmacyDetailsSchema, insertLaboratoryDetailsSchema, insertProfileSchema } from "@shared/schema";
 import drugRoutes from "./routes/drugs";
+import subscriptionRoutes from "./routes/subscriptions";
 import passport from "passport";
 import bcrypt from "bcrypt";
 
@@ -554,6 +555,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Drug analysis routes with Gemini AI
   app.use("/api/drugs", drugRoutes);
+
+  // Subscription routes for Google Play integration
+  app.use("/api/subscriptions", subscriptionRoutes);
 
   // Health check endpoint
   app.get("/api/health", (req, res) => {
