@@ -176,25 +176,25 @@ const SubscriptionPricing: React.FC = () => {
       </div>
 
       {/* FAQ / Additional Info */}
-      <div className="max-w-3xl mx-auto backdrop-blur-xl border border-white/30 rounded-lg p-6 md:p-8 bg-transparent">
+      <div className="max-w-3xl mx-auto backdrop-blur-xl border border-orange-400/50 rounded-lg p-6 md:p-8 bg-orange-500/20 shadow-lg shadow-orange-300/30">
         <h3 className="text-lg font-bold text-gray-900 mb-4">What's Included?</h3>
         <div className="space-y-3">
           <div className="flex gap-3">
-            <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+            <Check className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-gray-900 text-sm">All plans include:</p>
               <p className="text-gray-700 text-sm">24/7 technical support, automatic backups, and security updates</p>
             </div>
           </div>
           <div className="flex gap-3">
-            <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+            <Check className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-gray-900 text-sm">No setup fees or hidden charges</p>
               <p className="text-gray-700 text-sm">Only pay the monthly subscription. Cancel anytime without penalties.</p>
             </div>
           </div>
           <div className="flex gap-3">
-            <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+            <Check className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-gray-900 text-sm">NMRA Compliance Ready</p>
               <p className="text-gray-700 text-sm">Built to meet Sri Lankan pharmaceutical regulations and standards</p>
