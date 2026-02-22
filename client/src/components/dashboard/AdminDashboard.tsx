@@ -24,7 +24,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/components/auth/useAuth';
 import { toast } from 'sonner';
 import { CommissionDashboard } from './CommissionDashboard';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from './AuthProvider';
+import { useAuth } from './useAuth';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 

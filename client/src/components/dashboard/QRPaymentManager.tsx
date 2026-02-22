@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { QrCode, Upload, CheckCircle, AlertTriangle, Download, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/components/auth/useAuth';
 import { toast } from 'sonner';
 
 interface PaymentRequest {

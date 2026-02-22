@@ -7,6 +7,9 @@ import drugRoutes from "./routes/drugs";
 import passport from "passport";
 import bcrypt from "bcrypt";
 
+// Admin secret key - must match the one in AuthModal component
+const ADMIN_SECRET_KEY = 'DIGIFARMACY_ADMIN_2024_LK_SECRET';
+
 // Middleware to check if the user is authenticated and has a specific role
 const isPharmacist = (req: any, res: any, next: any) => {
   if (req.isAuthenticated() && req.user && req.user.role === 'pharmacy') {
@@ -21,7 +24,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.post('/api/signup', async (req, res) => {
     try {
-      const { email, password, fullName, phone, role } = req.body;
+      const { email, password, fullName, phone, role, secretKey } = req.body;
       
       if (!email || !password || !fullName || !role) {
         return res.status(400).json({ error: 'Missing required fields' });
@@ -38,8 +41,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Validate role
-      if (!['pharmacy', 'laboratory'].includes(role)) {
-        return res.status(400).json({ error: 'Invalid role. Must be pharmacy or laboratory' });
+      if (!['pharmacy', 'laboratory', 'admin'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role. Must be pharmacy, laboratory, or admin' });
+      }
+      
+      // If admin role, validate secret key
+      if (role === 'admin') {
+        if (!secretKey || secretKey !== ADMIN_SECRET_KEY) {
+          return res.status(401).json({ error: 'Invalid admin secret key' });
+        }
       }
       
       // Hash password

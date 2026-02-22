@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DollarSign, FileText, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/components/auth/useAuth';
 import { toast } from 'sonner';
 import { PharmacyVerification } from './PharmacyVerification';
 import { PharmacyProducts } from './PharmacyProducts';

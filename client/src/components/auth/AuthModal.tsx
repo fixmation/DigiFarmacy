@@ -6,8 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useAuth } from './AuthProvider';
-import { UserPlus, LogIn, Building2, User, FlaskConical } from 'lucide-react';
+import { useAuth } from './useAuth';
+import { UserPlus, LogIn, Building2, User, FlaskConical, Shield, Eye, EyeOff } from 'lucide-react';
+
+// Admin secret key - store this securely in production
+const ADMIN_SECRET_KEY = 'DIGIFARMACY_ADMIN_2024_LK_SECRET';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -19,11 +22,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [pdpaConsent, setPdpaConsent] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
 
   // Sign In Form
   const [signInData, setSignInData] = useState({
     email: '',
     password: ''
+  });
+
+  // Admin Auth Form
+  const [adminAuthData, setAdminAuthData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    fullName: '',
+    secretKey: '',
+    isSignUp: false
   });
 
   // Sign Up Form
@@ -131,6 +145,64 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const validateAdminSecretKey = () => {
+    return adminAuthData.secretKey === ADMIN_SECRET_KEY;
+  };
+
+  const handleAdminAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!validateAdminSecretKey()) {
+      setError('Invalid admin secret key');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (adminAuthData.isSignUp) {
+        if (adminAuthData.password !== adminAuthData.confirmPassword) {
+          setError('Passwords do not match');
+          return;
+        }
+
+        await signUp(adminAuthData.email, adminAuthData.password, {
+          full_name: adminAuthData.fullName,
+          role: 'admin',
+          secretKey: adminAuthData.secretKey
+        });
+
+        setError('');
+        setAdminAuthData({
+          email: '',
+          password: '',
+          confirmPassword: '',
+          fullName: '',
+          secretKey: '',
+          isSignUp: false
+        });
+        onClose();
+      } else {
+        await signIn(adminAuthData.email, adminAuthData.password);
+        setAdminAuthData({
+          email: '',
+          password: '',
+          confirmPassword: '',
+          fullName: '',
+          secretKey: '',
+          isSignUp: false
+        });
+        onClose();
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Admin authentication failed';
+      setError(errorMessage);
+      console.error('Admin auth error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -198,14 +270,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         </DialogHeader>
 
         <Tabs defaultValue="signin" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="signin">
-              <LogIn className="h-4 w-4 mr-2" />
-              Sign In
+              <LogIn className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Sign In</span>
+              <span className="sm:hidden">In</span>
             </TabsTrigger>
             <TabsTrigger value="signup">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Sign Up
+              <UserPlus className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Sign Up</span>
+              <span className="sm:hidden">Up</span>
+            </TabsTrigger>
+            <TabsTrigger value="admin">
+              <Shield className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Admin</span>
+              <span className="sm:hidden">Adm</span>
             </TabsTrigger>
           </TabsList>
 
@@ -394,6 +473,99 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
               <Button type="submit" className="w-full bg-green-500 hover:bg-green-600 text-white" disabled={loading || !pdpaConsent}>
                 {loading ? 'Creating Account...' : 'Create Account'}
+              </Button>
+            </form>
+          </TabsContent>
+
+          <TabsContent value="admin" className="space-y-4">
+            <form onSubmit={handleAdminAuth} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="admin-secret">Admin Secret Key</Label>
+                <Input
+                  id="admin-secret"
+                  type="password"
+                  placeholder="Enter admin secret key"
+                  value={adminAuthData.secretKey}
+                  onChange={(e) => setAdminAuthData({ ...adminAuthData, secretKey: e.target.value })}
+                  required
+                />
+                <p className="text-xs text-slate-500">Required to access admin features</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="admin-email">Email</Label>
+                <Input
+                  id="admin-email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={adminAuthData.email}
+                  onChange={(e) => setAdminAuthData({ ...adminAuthData, email: e.target.value })}
+                  required
+                />
+              </div>
+
+              {adminAuthData.isSignUp && (
+                <div className="space-y-2">
+                  <Label htmlFor="admin-fullname">Full Name</Label>
+                  <Input
+                    id="admin-fullname"
+                    type="text"
+                    placeholder="Your full name"
+                    value={adminAuthData.fullName}
+                    onChange={(e) => setAdminAuthData({ ...adminAuthData, fullName: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="admin-password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="admin-password"
+                    type={showAdminPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={adminAuthData.password}
+                    onChange={(e) => setAdminAuthData({ ...adminAuthData, password: e.target.value })}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminPassword(!showAdminPassword)}
+                    className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-700"
+                  >
+                    {showAdminPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {adminAuthData.isSignUp && (
+                <div className="space-y-2">
+                  <Label htmlFor="admin-confirm-password">Confirm Password</Label>
+                  <Input
+                    id="admin-confirm-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={adminAuthData.confirmPassword}
+                    onChange={(e) => setAdminAuthData({ ...adminAuthData, confirmPassword: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
+
+              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={loading}>
+                {loading ? (adminAuthData.isSignUp ? 'Creating Admin...' : 'Signing In...') : (adminAuthData.isSignUp ? 'Create Admin Account' : 'Admin Sign In')}
+              </Button>
+
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => setAdminAuthData({ ...adminAuthData, isSignUp: !adminAuthData.isSignUp })}
+              >
+                {adminAuthData.isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
               </Button>
             </form>
           </TabsContent>

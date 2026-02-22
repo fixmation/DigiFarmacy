@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Upload, Camera, FileText, CheckCircle, Shield, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/components/auth/useAuth';
 import PrescriptionValidator from './PrescriptionValidator';
 import { type PrescriptionValidation } from '@/utils/prescriptionValidator';
 

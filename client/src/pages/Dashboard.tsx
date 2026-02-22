@@ -1,5 +1,5 @@
 
-import { useAuth } from "@/components/auth/AuthProvider";
+import { useAuth } from "@/components/auth/useAuth";
 import { PharmacyDashboard } from "@/components/dashboard/PharmacyDashboard";
 import { LaboratoryDashboard } from "@/components/dashboard/LaboratoryDashboard";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";

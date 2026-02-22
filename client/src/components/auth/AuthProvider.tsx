@@ -16,7 +16,7 @@ interface AuthUser {
   email: string;
 }
 
-interface AuthContextType {
+export interface AuthContextType {
   user: AuthUser | null;
   profile: UserProfile | null;
   loading: boolean;
@@ -25,15 +25,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -79,16 +71,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Call signup API
+      const signupBody: any = {
+        email,
+        password,
+        fullName: userData.fullName || userData.full_name || '',
+        phone: userData.phone || null,
+        role: userData.role || 'pharmacy'
+      };
+      
+      // Include secretKey for admin accounts
+      if (userData.secretKey) {
+        signupBody.secretKey = userData.secretKey;
+      }
+      
       const res = await fetch('/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          fullName: userData.fullName || '',
-          phone: userData.phone || null,
-          role: userData.role || 'pharmacy'
-        }),
+        body: JSON.stringify(signupBody),
       });
 
       if (!res.ok) {
