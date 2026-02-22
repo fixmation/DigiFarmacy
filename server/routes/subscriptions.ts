@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import GooglePlayService, { SubscriptionPurchaseResponse } from '../services/googlePlay';
+import { FraudDetectionEngine, PaymentValidator, SecurityAuditLog } from '../security/fraud-detection';
 import { db } from '../db';
 
 const router = Router();
@@ -76,11 +77,13 @@ router.post('/initiate', async (req: Request, res: Response) => {
 /**
  * POST /api/subscriptions/verify-purchase
  * Verify purchase token with Google Play
+ * Includes fraud detection and security validation
  */
 router.post('/verify-purchase', async (req: Request, res: Response) => {
   try {
     const { packageName, subscriptionId, token } = req.body;
     const userId = (req.user as any)?.id;
+    const userEmail = (req.user as any)?.email;
 
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
@@ -102,11 +105,47 @@ router.post('/verify-purchase', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid subscription ID' });
     }
 
+    // Security validation 1: Token format validation
+    if (!PaymentValidator.validateTokenIntegrity(token, subscriptionId, packageName || '')) {
+      SecurityAuditLog.logValidationFailure(
+        userId,
+        'token_integrity',
+        'Invalid token format detected'
+      );
+      return res.status(400).json({ error: 'Invalid purchase token format' });
+    }
+
     const googlePlayService = getGooglePlayService();
 
     // Verify purchase with Google Play
     const purchase: SubscriptionPurchaseResponse =
       await googlePlayService.verifySubscriptionPurchase(subscriptionId, token);
+
+    // Security validation 2: Payment validation
+    const priceMap = {
+      'pharmacy_monthly': 2941,
+      'pharmacy_annual': 29410,
+      'laboratory_monthly': 1765,
+      'laboratory_annual': 17650,
+    };
+    const expectedPrice = priceMap[subscriptionId as keyof typeof priceMap];
+
+    const paymentValidation = PaymentValidator.validatePurchase(
+      purchase,
+      expectedPrice
+    );
+
+    if (!paymentValidation.valid) {
+      SecurityAuditLog.logValidationFailure(
+        userId,
+        'payment_validation',
+        paymentValidation.errors.join(', ')
+      );
+      return res.status(400).json({
+        error: 'Payment validation failed',
+        details: paymentValidation.errors,
+      });
+    }
 
     // Check if subscription already exists for this token
     const existingSubscription = await db.query(
@@ -115,18 +154,77 @@ router.post('/verify-purchase', async (req: Request, res: Response) => {
     );
 
     if (existingSubscription.rows.length > 0) {
+      SecurityAuditLog.logSecurityEvent('duplicate_purchase', userId, {
+        subscriptionId,
+        existingId: existingSubscription.rows[0].id,
+      });
       return res.status(400).json({
         error: 'This purchase token has already been used',
         subscription_id: existingSubscription.rows[0].id,
       });
     }
 
+    // Determine business type from SKU
+    const businessType = subscriptionId.includes('pharmacy') ? 'pharmacy' : 'laboratory';
+
+    // Get user info for fraud detection
+    const userResult = await db.query(
+      'SELECT created_at, email FROM profiles WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userInfo = userResult.rows[0];
+    const accountAgeMs = Date.now() - new Date(userInfo.created_at).getTime();
+    const accountAgeDays = accountAgeMs / (1000 * 60 * 60 * 24);
+
+    // Count previous purchases for this user
+    const previousPurchasesResult = await db.query(
+      'SELECT COUNT(*) as count FROM subscriptions WHERE user_id = $1',
+      [userId]
+    );
+    const previousPurchases = parseInt(
+      previousPurchasesResult.rows[0].count || '0'
+    );
+
+    // Security validation 3: Fraud detection
+    const fraudScore = FraudDetectionEngine.analyzePurchase({
+      userId,
+      email: userEmail || userInfo.email,
+      businessType,
+      purchaseToken: token,
+      subscriptionId,
+      price: expectedPrice,
+      currency: 'LKR',
+      purchaseDate: new Date(parseInt(purchase.startTimeMillis)),
+      isFirstPurchase: previousPurchases === 0,
+      previousPurchases,
+      userAccountAge: accountAgeDays,
+    });
+
+    // Log fraud detection result
+    if (fraudScore.riskLevel !== 'LOW') {
+      SecurityAuditLog.logFraudDetection(
+        userId,
+        fraudScore,
+        fraudScore.riskLevel === 'CRITICAL' ? 'BLOCKED' : 'ALLOWED_WITH_MONITORING'
+      );
+    }
+
+    // Block if critical fraud risk
+    if (fraudScore.riskLevel === 'CRITICAL') {
+      return res.status(403).json({
+        error: 'Purchase could not be verified',
+        code: 'VERIFICATION_FAILED',
+      });
+    }
+
     // Calculate subscription dates
     const startDate = new Date(parseInt(purchase.startTimeMillis));
     const expiryDate = new Date(parseInt(purchase.expiryTimeMillis));
-
-    // Determine business type from SKU
-    const businessType = subscriptionId.includes('pharmacy') ? 'pharmacy' : 'laboratory';
 
     // Create subscription record
     const insertResult = await db.query(
@@ -182,6 +280,8 @@ router.post('/verify-purchase', async (req: Request, res: Response) => {
           orderId: purchase.orderId,
           price: purchase.priceAmountMicros,
           currency: purchase.priceCurrencyCode,
+          fraudScore: fraudScore.score,
+          fraudRiskLevel: fraudScore.riskLevel,
         }),
       ]
     );
@@ -192,6 +292,13 @@ router.post('/verify-purchase', async (req: Request, res: Response) => {
     } catch (error) {
       console.error('Failed to acknowledge purchase (non-blocking):', error);
     }
+
+    // Log security event
+    SecurityAuditLog.logSecurityEvent('subscription_activated', userId, {
+      subscriptionId,
+      subscriptionRecordId: subscription.id,
+      fraudScore: fraudScore.score,
+    });
 
     return res.status(201).json({
       success: true,
