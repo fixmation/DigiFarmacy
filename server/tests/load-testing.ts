@@ -12,7 +12,7 @@
  * 5. Sustained load (24 hour test)
  */
 
-import http from 'http';
+import * as http from 'http';
 
 interface LoadTestConfig {
   name: string;

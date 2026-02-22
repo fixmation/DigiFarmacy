@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 
 /**
@@ -172,7 +172,8 @@ export class IdempotencyStore {
    */
   cleanup(): void {
     const now = Date.now();
-    for (const [messageId, timestamp] of this.processedMessages.entries()) {
+    const entries = Array.from(this.processedMessages.entries());
+    for (const [messageId, timestamp] of entries) {
       if (now - timestamp.getTime() > this.ttl) {
         this.processedMessages.delete(messageId);
       }

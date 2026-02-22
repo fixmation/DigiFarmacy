@@ -67,7 +67,8 @@ export class InMemoryRateLimitStore implements RateLimitStore {
    */
   cleanup(): void {
     const now = Date.now();
-    for (const [key, entry] of this.store.entries()) {
+    const entries = Array.from(this.store.entries());
+    for (const [key, entry] of entries) {
       if (now > entry.resetTime) {
         this.store.delete(key);
       }
@@ -210,13 +211,13 @@ export const subscriptionRateLimiters = {
  */
 export class SlidingWindowRateLimiter {
   private store = new Map<string, number[]>();
-  private readonly cleanupInterval: NodeJS.Timer;
+  private readonly cleanupInterval: NodeJS.Timeout;
 
   constructor(cleanupIntervalMs: number = 60 * 1000) {
     // Clean up old entries periodically
     this.cleanupInterval = setInterval(() => {
       this.cleanup();
-    }, cleanupIntervalMs);
+    }, cleanupIntervalMs) as NodeJS.Timeout;
   }
 
   /**
@@ -262,8 +263,9 @@ export class SlidingWindowRateLimiter {
    */
   private cleanup(): void {
     const now = Date.now();
+    const entries = Array.from(this.store.entries());
 
-    for (const [identifier, timestamps] of this.store.entries()) {
+    for (const [identifier, timestamps] of entries) {
       const validTimestamps = timestamps.filter(
         (ts) => now - ts < 24 * 60 * 60 * 1000 // Keep for 24 hours
       );
