@@ -23,6 +23,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [error, setError] = useState<string>('');
   const [pdpaConsent, setPdpaConsent] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState<'signin' | 'signup' | 'admin'>('signin');
 
   // Sign In Form
   const [signInData, setSignInData] = useState({
@@ -269,24 +270,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="signin" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="signin">
-              <LogIn className="h-4 w-4 mr-1" />
-              <span className="hidden sm:inline">Sign In</span>
-              <span className="sm:hidden">In</span>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'signin' | 'signup' | 'admin')} className="w-full">
+          {/* Desktop Tabs (hidden on mobile) */}
+          <TabsList className="hidden sm:grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="signin" className="flex items-center gap-2">
+              <LogIn className="h-4 w-4" />
+              <span>Sign In</span>
             </TabsTrigger>
-            <TabsTrigger value="signup">
-              <UserPlus className="h-4 w-4 mr-1" />
-              <span className="hidden sm:inline">Sign Up</span>
-              <span className="sm:hidden">Up</span>
+            <TabsTrigger value="signup" className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              <span>Sign Up</span>
             </TabsTrigger>
-            <TabsTrigger value="admin">
-              <Shield className="h-4 w-4 mr-1" />
-              <span className="hidden sm:inline">Admin</span>
-              <span className="sm:hidden">Adm</span>
+            <TabsTrigger value="admin" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              <span>Admin</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* Mobile Dropdown Selector (shown only on mobile) */}
+          <div className="sm:hidden mb-6">
+            <Label htmlFor="auth-mode" className="block text-sm font-medium mb-2">Authentication Mode</Label>
+            <Select value={activeTab} onValueChange={(value) => setActiveTab(value as 'signin' | 'signup' | 'admin')}>
+              <SelectTrigger id="auth-mode" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="signin">
+                  <div className="flex items-center gap-2">
+                    <LogIn className="h-4 w-4" />
+                    Sign In to Your Account
+                  </div>
+                </SelectItem>
+                <SelectItem value="signup">
+                  <div className="flex items-center gap-2">
+                    <UserPlus className="h-4 w-4" />
+                    Create New Account
+                  </div>
+                </SelectItem>
+                <SelectItem value="admin">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    Administrator Access
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
             <TabsContent value="signin" className="space-y-4">
             <form onSubmit={handleSignIn} className="space-y-4">
