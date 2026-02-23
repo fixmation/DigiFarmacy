@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(error.error || 'Signup failed');
       }
 
-      const { user } = await res.json();
+      const { user, emailVerificationPending, message } = await res.json();
       console.log("Auth: signUp - received user from API:", user);
       
       const newProfile: UserProfile = {
@@ -111,7 +111,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser({ id: user.id, email: user.email });
       setProfile(newProfile);
       
-      toast.success('Account created successfully!');
+      if (emailVerificationPending) {
+        toast.success(message || 'Account created! Please verify your email.');
+      } else {
+        toast.success('Account created successfully!');
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Failed to create account';
       toast.error(msg);
@@ -125,13 +129,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: email, password }),
+        credentials: 'include',
       });
 
       if (!res.ok) {
-        throw new Error('Sign in failed');
+        const error = await res.json();
+        throw new Error(error.message || 'Sign in failed');
       }
 
-      const { user } = await res.json();
+      const { user, success } = await res.json();
       console.log("Auth: signIn - received user from API:", user);
       
       const profile: UserProfile = {
@@ -146,11 +152,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setUser({id: user.id, email: user.email});
       setProfile(profile);
-      console.log("Auth: signIn - user and profile set:", user, profile);
       
-      toast.success('Signed in successfully!');
+      if (profile.status !== 'verified') {
+        toast.warning('Your email is pending verification. Please check your inbox.');
+      } else {
+        toast.success('Signed in successfully!');
+      }
+      console.log("Auth: signIn - user and profile set:", user, profile);
     } catch (error) {
-      toast.error('Failed to sign in');
+      const msg = error instanceof Error ? error.message : 'Failed to sign in';
+      toast.error(msg);
       throw error;
     }
   };

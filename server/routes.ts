@@ -5,8 +5,10 @@ import { z } from "zod";
 import { insertLabBookingSchema, insertPharmacyDetailsSchema, insertLaboratoryDetailsSchema, insertProfileSchema } from "@shared/schema";
 import drugRoutes from "./routes/drugs";
 import subscriptionRoutes from "./routes/subscriptions";
+import emailVerificationRoutes from "./routes/email-verification";
 import passport from "passport";
 import bcrypt from "bcrypt";
+import { generateVerificationToken, getTokenExpiration, buildVerificationLink, sendVerificationEmail } from "./services/email";
 
 // Admin secret key - must match the one in AuthModal component
 const ADMIN_SECRET_KEY = 'DIGIFARMACY_ADMIN_2024_LK_SECRET';
@@ -70,9 +72,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Store password hash
       await (storage as any).setPassword(profile.id, passwordHash);
+
+      // Generate verification token
+      const verificationToken = generateVerificationToken();
+      const expiresAt = getTokenExpiration();
+      const verificationLink = buildVerificationLink(verificationToken, email);
+
+      // Store verification token
+      await (storage as any).createEmailVerificationToken({
+        userId: profile.id,
+        email,
+        token: verificationToken,
+        expiresAt,
+      });
+
+      // Send verification email
+      const emailResult = await sendVerificationEmail({
+        email,
+        userId: profile.id,
+        token: verificationToken,
+        verificationLink,
+      });
+
+      console.log(`[Auth] Verification email sent to ${email}:`, emailResult);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Auth] Verification link for testing: ${verificationLink}`);
+      }
       
       res.json({
         success: true,
+        message: 'Account created. Please verify your email to continue.',
         user: {
           id: profile.id,
           email: profile.email,
@@ -81,7 +110,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: profile.role,
           status: profile.status,
           preferredLanguage: profile.preferredLanguage
-        }
+        },
+        emailVerificationPending: true,
       });
     } catch (error) {
       console.error('Signup error:', error);
@@ -558,6 +588,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Subscription routes for Google Play integration
   app.use("/api/subscriptions", subscriptionRoutes);
+
+  // Email verification routes
+  app.use(emailVerificationRoutes);
 
   // Health check endpoint
   app.get("/api/health", (req, res) => {

@@ -21,14 +21,26 @@ export type PaymentStatus = typeof paymentStatusEnum[number];
 // Profiles table (equivalent to Supabase profiles)
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey(),
-  email: text("email").notNull(),
+  email: text("email").notNull().unique(),
   fullName: text("full_name").notNull(),
   phone: text("phone"),
   role: text("role").notNull().$type<UserRole>().default("customer"),
   status: text("status").notNull().$type<UserStatus>().default("pending"),
+  emailVerified: timestamp("email_verified"),
   preferredLanguage: text("preferred_language").$type<LanguageCode>().default("en"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Email verification tokens
+export const emailVerificationTokens = pgTable("email_verification_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  verifiedAt: timestamp("verified_at"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Pharmacy details
@@ -148,6 +160,7 @@ export const insertProfileSchema = createInsertSchema(profiles).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  emailVerified: true,
 });
 
 export const insertPharmacyDetailsSchema = createInsertSchema(pharmacyDetails).omit({
@@ -235,9 +248,17 @@ export const insertPurchaseEventSchema = createInsertSchema(purchaseEvents).omit
   createdAt: true,
 });
 
+export const insertEmailVerificationTokenSchema = createInsertSchema(emailVerificationTokens).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Profile = typeof profiles.$inferSelect;
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
+
+export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
+export type InsertEmailVerificationToken = z.infer<typeof insertEmailVerificationTokenSchema>;
 
 export type PharmacyDetails = typeof pharmacyDetails.$inferSelect;
 export type InsertPharmacyDetails = z.infer<typeof insertPharmacyDetailsSchema>;

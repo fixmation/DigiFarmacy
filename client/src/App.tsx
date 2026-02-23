@@ -22,6 +22,7 @@ import TermsOfService from "./pages/TermsOfService";
 import VoiceAssistant from "./pages/VoiceAssistant";
 import Workflow from "./pages/Workflow";
 import Login from "./pages/Login";
+import VerifyEmail from "./pages/VerifyEmail";
 import RoleMiddleware from "./components/auth/RoleMiddleware";
 import OpsDashboard from "./pages/OpsDashboard"; // Import the new dashboard
 
@@ -51,6 +52,7 @@ const App = () => (
               {/* Public landing page - shows AuthModal for unauthenticated users */}
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/admin-auth" element={<AdminAuth />} />
               <Route path="/how-to-use" element={<HowToUse />} />
               <Route path="/pdpa" element={<PDPA />} />

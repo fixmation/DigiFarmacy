@@ -117,6 +117,7 @@ export class MemStorage implements IStorage {
   private prescriptionMedications: PrescriptionMedication[] = [];
   private medicineBatches: MedicineBatch[] = [];
   private passwordRecords: Map<string, PasswordRecord> = new Map();
+  private emailVerificationTokens: Map<string, any> = new Map();
 
   constructor() {
     this.initializeSampleData();
@@ -627,6 +628,42 @@ export class MemStorage implements IStorage {
     this.medicineBatches[batchIndex] = { ...this.medicineBatches[batchIndex], ...updates };
     return this.medicineBatches[batchIndex];
   }
+
+  // Email Verification methods
+  async createEmailVerificationToken(data: any): Promise<any> {
+    const token = {
+      id: `token_${Date.now()}`,
+      ...data,
+      createdAt: new Date(),
+    };
+    this.emailVerificationTokens.set(data.token, token);
+    return token;
+  }
+
+  async getEmailVerificationToken(token: string): Promise<any> {
+    return this.emailVerificationTokens.get(token) || null;
+  }
+
+  async markEmailTokenAsVerified(token: string): Promise<void> {
+    const verificationToken = this.emailVerificationTokens.get(token);
+    if (verificationToken) {
+      verificationToken.verifiedAt = new Date();
+      this.emailVerificationTokens.set(token, verificationToken);
+    }
+  }
+
+  async deleteExpiredEmailTokens(): Promise<number> {
+    let deletedCount = 0;
+    const now = new Date();
+    for (const [token, data] of this.emailVerificationTokens.entries()) {
+      if (new Date(data.expiresAt) < now) {
+        this.emailVerificationTokens.delete(token);
+        deletedCount++;
+      }
+    }
+    return deletedCount;
+  }
 }
+
 
 export const storage = new MemStorage();
