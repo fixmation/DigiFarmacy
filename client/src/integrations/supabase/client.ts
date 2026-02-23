@@ -1,38 +1,25 @@
 // Compatibility layer for Supabase migration
 // This file provides mock implementations to maintain compatibility during migration
 
-const createQueryBuilder = () => ({
-  select: (fields?: string) => ({
-    eq: (column: string, value: any) => ({
-      single: () => Promise.resolve({ data: null, error: null }),
-      order: (col: string, opts?: any) => Promise.resolve({ data: [], error: null })
-    }),
-    order: (column: string, opts?: any) => Promise.resolve({ data: [], error: null }),
-    limit: (n: number) => Promise.resolve({ data: [], error: null })
-  }),
-  order: (column: string, opts?: any) => ({
-    limit: (n: number) => ({
-      single: () => Promise.resolve({ data: null, error: null })
-    }),
-    single: () => Promise.resolve({ data: null, error: null })
-  }),
-  eq: (column: string, value: any) => ({
-    single: () => Promise.resolve({ data: null, error: null }),
-    order: (col: string, opts?: any) => Promise.resolve({ data: [], error: null })
-  }),
-  insert: (data: any) => ({
-    select: () => Promise.resolve({ data: [], error: null })
-  }),
-  update: (data: any) => ({
-    eq: (column: string, value: any) => ({
-      select: () => Promise.resolve({ data: null, error: null })
-    })
-  }),
-  delete: () => ({
-    eq: (column: string, value: any) => Promise.resolve({ data: null, error: null })
-  }),
-  upsert: (data: any, opts?: any) => Promise.resolve({ data: null, error: null })
-});
+const emptyPromise = Promise.resolve({ data: null, error: null });
+const emptyArrayPromise = Promise.resolve({ data: [], error: null });
+
+// Create a chainable object that can handle any method call
+const createChainable = () => {
+  const handler = (target: any, prop: string): any => {
+    if (prop === 'then' || prop === 'catch' || prop === 'finally') {
+      return emptyPromise[prop as keyof Promise<any>];
+    }
+    return (...args: any[]) => createChainable();
+  };
+  return new Proxy({
+    then: (resolve: any) => resolve({ data: null, error: null }),
+    catch: (reject: any) => emptyPromise,
+    finally: () => emptyPromise,
+  }, handler);
+};
+
+const createQueryBuilder = () => createChainable();
 
 export const supabase = {
   auth: {
@@ -42,7 +29,7 @@ export const supabase = {
     signInWithPassword: () => Promise.resolve({ data: null, error: null }),
     signOut: () => Promise.resolve({ error: null })
   },
-  from: (table: string) => createQueryBuilder(),
+  from: (table: string) => createChainable(),
   storage: {
     from: () => ({
       upload: () => Promise.resolve({ data: null, error: null }),

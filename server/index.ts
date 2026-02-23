@@ -15,8 +15,14 @@ import { scheduleExpiryAutomation } from './cronJobs';
 import { storage } from './storage';
 import { log } from "console";
 import { setupVite } from "./vite";
+import { setupCors } from './middleware/cors';
+import healthRouter from './routes/health';
 
 const app = express();
+
+// CORS middleware
+setupCors(app);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -179,6 +185,9 @@ async function main() {
   }
 
   const server = createServer(app);
+  
+  // Register health check routes
+  app.use(healthRouter);
   
   // Set up routes
   await registerRoutes(app);
