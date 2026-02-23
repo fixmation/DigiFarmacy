@@ -5,7 +5,7 @@
 
 import { registerPlugin } from '@capacitor/core';
 import type { Plugin } from '@capacitor/core';
-import { CapacitorPaymentRequest, CapacitorPaymentResponse, PurchaseDetails } from '../../shared/checkout-types';
+import { CapacitorPaymentRequest, CapacitorPaymentResponse, PurchaseDetails } from '@shared/checkout-types';
 
 /**
  * Plugin interface for native Google Play Billing
@@ -59,7 +59,7 @@ const GooglePlayBilling = registerPlugin<GooglePlayBillingPlugin>(
   'GooglePlayBilling',
   {
     web: () =>
-      import('./web').then(m => new m.GooglePlayBillingWeb()),
+      import('./google-play-billing/web').then(m => new m.GooglePlayBillingWeb()),
   }
 );
 

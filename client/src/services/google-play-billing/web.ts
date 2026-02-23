@@ -4,8 +4,8 @@
  */
 
 import { WebPlugin } from '@capacitor/core';
-import type { GooglePlayBillingPlugin } from './google-play-billing';
-import { CapacitorPaymentResponse, PurchaseDetails } from '../../shared/checkout-types';
+import type { GooglePlayBillingPlugin } from '../google-play-billing';
+import { CapacitorPaymentResponse, PurchaseDetails } from '@shared/checkout-types';
 
 export class GooglePlayBillingWeb extends WebPlugin implements GooglePlayBillingPlugin {
   private packageName: string = 'com.digifarmacy.app';

@@ -185,6 +185,21 @@ router.post('/acknowledge', async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Invalid business type' });
     }
 
+    // Define SKU prices
+    const skuPrices: { [key: string]: { amount: number; currency: string } } = {
+      pharmacy_monthly: { amount: 2500, currency: 'LKR' },
+      pharmacy_annual: { amount: 25000, currency: 'LKR' },
+      laboratory_monthly: { amount: 1500, currency: 'LKR' },
+      laboratory_annual: { amount: 15000, currency: 'LKR' },
+    };
+
+    const priceInfo = skuPrices[sku];
+    if (!priceInfo) {
+      return res.status(400).json({ error: 'Invalid SKU' });
+    }
+
+    const { amount, currency } = priceInfo;
+
     // Create or update subscription in database
     const subscriptionId = uuidv4();
     const now = new Date();
@@ -204,10 +219,13 @@ router.post('/acknowledge', async (req: AuthRequest, res: Response) => {
       .where(
         and(
           eq(subscriptions.userId, userId),
-          eq(subscriptions.subscriptionType, businessType as any),
+          eq(subscriptions.businessType, businessType as any),
         )
       )
       .limit(1);
+
+    // Price in micros (for Google Play Billing compatibility)
+    const priceInMicros = amount * 1000000;
 
     if (existingSubscription.length > 0) {
       // Update existing subscription
@@ -217,8 +235,9 @@ router.post('/acknowledge', async (req: AuthRequest, res: Response) => {
           status: 'ACTIVE',
           purchaseToken,
           expiryDate,
-          autoRenew: true,
-          lastRenewalDate: now,
+          isAutoRenew: true,
+          renewalDate: expiryDate,
+          lastVerifiedAt: now,
         })
         .where(eq(subscriptions.id, existingSubscription[0].id));
 
@@ -228,29 +247,25 @@ router.post('/acknowledge', async (req: AuthRequest, res: Response) => {
       await db.insert(subscriptions).values({
         id: subscriptionId,
         userId,
-        subscriptionType: businessType as any,
-        billingPeriod: period as any,
-        status: 'ACTIVE',
+        businessType: businessType as any,
+        skuId: sku,
         purchaseToken,
+        orderId: `ORDER_${Date.now()}`,
+        status: 'ACTIVE',
+        purchaseDate: now,
         expiryDate,
-        autoRenew: true,
-        createdAt: now,
-        lastRenewalDate: now,
+        renewalDate: expiryDate,
+        isAutoRenew: true,
+        priceAmountMicros: Math.round(priceInMicros),
+        currencyCode: currency,
+        lastVerifiedAt: now,
       });
 
       console.log('[Checkout] Subscription created:', subscriptionId);
     }
 
-    // Update user profile subscription status if needed
-    await db
-      .update(profiles)
-      .set({
-        subscriptionStatus: 'ACTIVE',
-        businessType: businessType as any,
-      })
-      .where(eq(profiles.id, userId));
-
-    console.log('[Checkout] User profile updated');
+    // Note: We don't update profiles table as there's no subscription-related field there
+    // Subscription data is stored entirely in the subscriptions table
 
     return res.json({
       success: true,
@@ -309,7 +324,7 @@ router.post('/verify', async (req: AuthRequest, res: Response) => {
       subscriptionId: sub.id,
       status: sub.status,
       expiryDate: sub.expiryDate,
-      businessType: sub.subscriptionType,
+      businessType: sub.businessType,
     });
   } catch (error) {
     console.error('Error verifying subscription:', error);
@@ -343,11 +358,10 @@ router.get('/subscription-status', async (req: AuthRequest, res: Response) => {
       hasActiveSubscription: activeSubscriptions.length > 0,
       subscriptions: activeSubscriptions.map((sub) => ({
         id: sub.id,
-        type: sub.subscriptionType,
+        type: sub.businessType,
         status: sub.status,
         expiryDate: sub.expiryDate,
-        autoRenew: sub.autoRenew,
-        billingPeriod: sub.billingPeriod,
+        autoRenew: sub.isAutoRenew,
       })),
     });
   } catch (error) {

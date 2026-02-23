@@ -3,7 +3,7 @@
  * Handles subscription checkout flow
  */
 
-import { SubscriptionCheckoutData, SubscriptionPlan, BillingPeriod, BusinessType, CapacitorPaymentResponse, PaymentStatus } from '../../shared/checkout-types';
+import { SubscriptionCheckoutData, SubscriptionPlan, BillingPeriod, BusinessType, CapacitorPaymentResponse, PaymentStatus } from '@shared/checkout-types';
 import { GooglePlayBillingService } from './google-play-billing';
 import { getPlatformInfo } from '../utils/platform';
 
@@ -112,6 +112,7 @@ export class CheckoutService {
 
       const response = await this.billingService.launchBillingFlow({
         sku: plan.sku,
+        businessType: plan.businessType,
         userId,
         email,
       });
@@ -120,7 +121,7 @@ export class CheckoutService {
         // Acknowledge purchase on backend
         await this.acknowledgePurchaseOnBackend(response.purchaseToken, plan.sku);
 
-        this.state.lastOrderId = response.orderId;
+        this.state.lastOrderId = response.orderId || null;
         this.state.successMessage = 'Subscription activated successfully!';
 
         console.log('[CheckoutService] Payment successful:', response.orderId);
