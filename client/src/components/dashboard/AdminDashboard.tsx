@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,37 +5,28 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { 
   Users, 
   Building2, 
   DollarSign, 
-  FileText, 
   Settings, 
   TrendingUp,
-  Shield,
-  Database,
-  Key,
-  Ban,
   CheckCircle,
   FlaskConical,
-  QrCode,
-  AlertTriangle
+  AlertTriangle,
+  CreditCard
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/useAuth';
 import { toast } from 'sonner';
-import { CommissionDashboard } from './CommissionDashboard';
 
 interface AdminStats {
   totalUsers: number;
   totalPharmacies: number;
-  totalLaboratories: number;
+  totalSubscriptions: number;
+  activeSubscriptions: number;
+  monthlyRecurringRevenue: number;
   pendingVerifications: number;
-  totalEarnings: number;
-  monthlyTransactions: number;
-  pendingPayments: number;
-  unpaidCommissions: number;
 }
 
 interface SiteConfig {
@@ -50,8 +40,6 @@ interface UserProfile {
   role: string;
   status: string;
   created_at: string;
-  pharmacy_details?: Array<{ id: string; business_name: string; }>;
-  laboratory_details?: Array<{ id: string; business_name: string; }>;
 }
 
 export const AdminDashboard: React.FC = () => {
@@ -59,20 +47,17 @@ export const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0,
     totalPharmacies: 0,
-    totalLaboratories: 0,
+    totalSubscriptions: 0,
+    activeSubscriptions: 0,
+    monthlyRecurringRevenue: 0,
     pendingVerifications: 0,
-    totalEarnings: 0,
-    monthlyTransactions: 0,
-    pendingPayments: 0,
-    unpaidCommissions: 0
   });
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({});
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Check if user is developer admin (handle potential type mismatch)
-  const isDeveloperAdmin = profile?.role === 'admin' && profile?.email?.includes('developer');
+  const isDeveloperAdmin = profile?.role === 'admin';
 
   useEffect(() => {
     fetchAdminData();
@@ -80,90 +65,56 @@ export const AdminDashboard: React.FC = () => {
 
   const fetchAdminData = async () => {
     try {
-      // Fetch user stats with related pharmacy/lab data
-      const { data: usersData } = await supabase
+      setLoading(true);
+
+      // Fetch user stats
+      const { data: usersData } = await (supabase
         .from('profiles')
-        .select(`
-          *,
-          pharmacy_details(id, business_name),
-          laboratory_details(id, business_name)
-        `);
+        .select('id, full_name, email, role, status, created_at') as any);
 
-      // Fetch pharmacy stats
-      const { data: pharmacies } = await supabase
+      // Fetch pharmacy details
+      const { data: pharmacyData } = await (supabase
         .from('pharmacy_details')
-        .select('verified_at');
+        .select('id') as any);
 
-      // Fetch laboratory stats
-      const { data: laboratories } = await supabase
-        .from('laboratory_details')
-        .select('verified_at');
-
-      // Fetch transaction stats (handle potential missing columns gracefully)
-      const { data: transactions } = await supabase
-        .from('commission_transactions')
-        .select('amount_lkr, transaction_date, status, description');
-
-      // Try to fetch QR payment requests (may not exist yet)
-      let paymentRequests: any[] = [];
-      try {
-        const { data: paymentData } = await supabase
-          .from('commission_transactions')
-          .select('*')
-          .eq('status', 'pending');
-        paymentRequests = paymentData || [];
-      } catch (error) {
-        console.log('QR payment requests table not available yet');
-      }
-
-      // Fetch site configuration (only for main admin)
-      let config: any[] = [];
-      if (profile?.role === 'admin') {
-        const { data: configData } = await supabase
-          .from('site_config')
-          .select('config_key, config_value');
-        config = configData || [];
-      }
+      // Fetch subscription stats
+      const { data: subscriptions } = await (supabase
+        .from('subscriptions')
+        .select('id, status, product_id, monthly_price') as any);
 
       // Process stats
       const totalUsers = usersData?.length || 0;
-      const totalPharmacies = usersData?.filter(u => u.role === 'pharmacy').length || 0;
-      const totalLaboratories = usersData?.filter(u => u.role === 'laboratory').length || 0;
-      const pendingVerifications = usersData?.filter(u => (u.role === 'pharmacy' || u.role === 'laboratory') && u.status === 'pending').length || 0;
-      
-      // Commission calculations (handle gracefully if columns don't exist)
-      const totalEarnings = transactions?.reduce((sum, t) => sum + Number(t.amount_lkr || 0), 0) || 0;
-      const unpaidCommissions = transactions?.filter(t => t.status === 'pending')
-        .reduce((sum, t) => sum + Number(t.amount_lkr || 0), 0) || 0;
-      
-      const pendingPayments = Array.isArray(paymentRequests) ? paymentRequests.length : 0;
-      
-      // Calculate monthly transactions (current month)
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      const monthlyTransactions = transactions?.filter(t => {
-        if (!t.transaction_date) return false;
-        const transDate = new Date(t.transaction_date);
-        return transDate.getMonth() === currentMonth && transDate.getFullYear() === currentYear;
-      }).length || 0;
+      const totalPharmacies = pharmacyData?.length || 0;
+      const totalSubscriptions = subscriptions?.length || 0;
+      const activeSubscriptions = subscriptions?.filter((s: any) => s.status === 'ACTIVE').length || 0;
+      const pendingVerifications = usersData?.filter((u: any) => 
+        (u.role === 'pharmacy' || u.role === 'laboratory') && u.status === 'pending'
+      ).length || 0;
+
+      // Calculate MRR
+      const monthlyRecurringRevenue = subscriptions
+        ?.filter((s: any) => s.status === 'ACTIVE')
+        .reduce((sum: number, s: any) => sum + (Number(s.monthly_price) || 0), 0) || 0;
 
       setStats({
         totalUsers,
         totalPharmacies,
-        totalLaboratories,
+        totalSubscriptions,
+        activeSubscriptions,
+        monthlyRecurringRevenue,
         pendingVerifications,
-        totalEarnings,
-        monthlyTransactions,
-        pendingPayments,
-        unpaidCommissions
       });
 
       setUsers(usersData || []);
 
-      // Process site config (only for main admin)
-      if (profile?.role === 'admin') {
+      // Fetch site configuration
+      if (isDeveloperAdmin) {
+        const { data: configData } = await (supabase
+          .from('site_config')
+          .select('config_key, config_value') as any);
+
         const configObj: SiteConfig = {};
-        config.forEach(c => {
+        configData?.forEach((c: any) => {
           configObj[c.config_key] = c.config_value || '';
         });
         setSiteConfig(configObj);
@@ -178,24 +129,18 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const updateSiteConfig = async () => {
-    if (profile?.role !== 'admin') return;
+    if (!isDeveloperAdmin) return;
     
     setSaving(true);
     try {
-      // Update each config value
       for (const [key, value] of Object.entries(siteConfig)) {
-        const { error } = await supabase
+        await (supabase
           .from('site_config')
           .upsert({ 
             config_key: key,
             config_value: value,
-            updated_by: profile?.id,
             updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'config_key'
-          });
-
-        if (error) throw error;
+          }) as any);
       }
 
       toast.success('Site configuration updated successfully');
@@ -215,14 +160,11 @@ export const AdminDashboard: React.FC = () => {
     const newStatus = currentStatus === 'verified' ? 'suspended' : 'verified';
     
     try {
-      const { error } = await supabase
+      await (supabase
         .from('profiles')
         .update({ status: newStatus })
-        .eq('id', userId);
+        .eq('id', userId) as any);
 
-      if (error) throw error;
-
-      // Update local state
       setUsers(prevUsers => 
         prevUsers.map(user => 
           user.id === userId ? { ...user, status: newStatus } : user
@@ -230,7 +172,7 @@ export const AdminDashboard: React.FC = () => {
       );
 
       toast.success(`User ${newStatus === 'verified' ? 'activated' : 'blocked'} successfully`);
-      fetchAdminData(); // Refresh stats
+      fetchAdminData();
     } catch (error) {
       console.error('Error updating user status:', error);
       toast.error('Failed to update user status');
@@ -249,283 +191,221 @@ export const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-medical-slate via-medical-mint to-white p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-medical-slate via-medical-mint to-white p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center space-y-4">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-medical-blue to-medical-green bg-clip-text text-transparent">
-            {isDeveloperAdmin ? 'Developer Admin Dashboard' : 'Admin Dashboard'}
-          </h1>
-          <p className="text-base md:text-lg text-muted-foreground">
-            {isDeveloperAdmin ? 'Commission tracking and developer analytics' : 'System administration and commission management'}
-          </p>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-medical-slate mb-2">Admin Dashboard</h1>
+          <p className="text-gray-600">Manage pharmacies, subscriptions, and site configuration</p>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-          <Card className="glass-card shadow-blue-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">Total Pharmacies</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalUsers}</div>
-              <p className="text-xs text-muted-foreground">
-                Registered users
-              </p>
+              <div className="flex items-center justify-between">
+                <div className="text-3xl font-bold text-medical-slate">{stats.totalPharmacies}</div>
+                <Building2 className="w-8 h-8 text-medical-blue opacity-50" />
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="glass-card shadow-blue-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">Active Subscriptions</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">LKR {stats.totalEarnings.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
-                Platform commissions
-              </p>
+              <div className="flex items-center justify-between">
+                <div className="text-3xl font-bold text-green-600">{stats.activeSubscriptions}</div>
+                <CheckCircle className="w-8 h-8 text-green-500 opacity-50" />
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="glass-card shadow-blue-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Unpaid Commissions</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">Monthly Revenue</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">LKR {stats.unpaidCommissions.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
-                Pending payments
-              </p>
+              <div className="flex items-center justify-between">
+                <div className="text-3xl font-bold text-medical-blue">LKR {stats.monthlyRecurringRevenue.toLocaleString()}</div>
+                <DollarSign className="w-8 h-8 text-medical-blue opacity-50" />
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="glass-card shadow-blue-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Transactions</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">Total Users</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.monthlyTransactions}</div>
-              <p className="text-xs text-muted-foreground">
-                This month
-              </p>
+              <div className="flex items-center justify-between">
+                <div className="text-3xl font-bold text-medical-slate">{stats.totalUsers}</div>
+                <Users className="w-8 h-8 text-medical-slate opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">Pending Verifications</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-3xl font-bold text-amber-600">{stats.pendingVerifications}</div>
+                <AlertTriangle className="w-8 h-8 text-amber-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">Total Subscriptions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-3xl font-bold text-medical-slate">{stats.totalSubscriptions}</div>
+                <CreditCard className="w-8 h-8 text-medical-slate opacity-50" />
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Content */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
-            <TabsTrigger value="overview" className="text-xs md:text-sm">Overview</TabsTrigger>
-            <TabsTrigger value="commission" className="text-xs md:text-sm">Commission</TabsTrigger>
-            <TabsTrigger value="users" className="text-xs md:text-sm">Users</TabsTrigger>
-            <TabsTrigger value="pharmacies" className="text-xs md:text-sm">Pharmacies</TabsTrigger>
-            <TabsTrigger value="laboratories" className="text-xs md:text-sm">Labs</TabsTrigger>
-            {profile?.role === 'admin' && <TabsTrigger value="settings" className="text-xs md:text-sm">API Settings</TabsTrigger>}
+        {/* Tabs */}
+        <Tabs defaultValue="subscriptions" className="space-y-4">
+          <TabsList className="bg-white border-0 shadow-md p-1">
+            <TabsTrigger value="subscriptions" className="data-[state=active]:bg-medical-blue data-[state=active]:text-white">
+              <CreditCard className="w-4 h-4 mr-2" />
+              Subscriptions
+            </TabsTrigger>
+            <TabsTrigger value="users" className="data-[state=active]:bg-medical-blue data-[state=active]:text-white">
+              <Users className="w-4 h-4 mr-2" />
+              Users & Verification
+            </TabsTrigger>
+            {isDeveloperAdmin && (
+              <TabsTrigger value="config" className="data-[state=active]:bg-medical-blue data-[state=active]:text-white">
+                <Settings className="w-4 h-4 mr-2" />
+                Site Configuration
+              </TabsTrigger>
+            )}
           </TabsList>
 
-          <TabsContent value="commission">
-            <CommissionDashboard />
-          </TabsContent>
-
-          <TabsContent value="overview">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="glass-card shadow-blue-md">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Database className="h-5 w-5" />
-                    System Health
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span>Database Status</span>
-                    <Badge variant="default">Online</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Authentication</span>
-                    <Badge variant="default">Active</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Storage</span>
-                    <Badge variant="default">Available</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Payment System</span>
-                    <Badge variant="default">LankaQR Ready</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="glass-card shadow-blue-md">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Recent Activity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <span>New user registrations</span>
-                      <span className="font-medium">12 today</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Prescription uploads</span>
-                      <span className="font-medium">45 this week</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Commission transactions</span>
-                      <span className="font-medium">{stats.monthlyTransactions} this month</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Payment requests</span>
-                      <span className="font-medium">{stats.pendingPayments} pending</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="users">
-            <Card className="glass-card shadow-blue-md">
+          {/* Subscriptions Tab */}
+          <TabsContent value="subscriptions">
+            <Card className="border-0 shadow-lg">
               <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>
-                  Manage user accounts, permissions and commission payments
-                </CardDescription>
+                <CardTitle>Subscription Overview</CardTitle>
+                <CardDescription>Track subscription metrics and revenue</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {users.filter(user => user.role === 'pharmacy' || user.role === 'laboratory').map((user) => {
-                    const providerDetails = user.role === 'pharmacy' ? user.pharmacy_details?.[0] : user.laboratory_details?.[0];
-                    return (
-                      <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg shadow-blue-sm">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-2">
-                            {user.role === 'pharmacy' ? (
-                              <Building2 className="h-4 w-4 text-medical-blue" />
-                            ) : (
-                              <FlaskConical className="h-4 w-4 text-medical-green" />
-                            )}
-                            <Badge variant={user.role === 'pharmacy' ? 'default' : 'secondary'}>
-                              {user.role}
-                            </Badge>
-                          </div>
-                          <div>
-                            <p className="font-medium">{user.full_name}</p>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
-                            {providerDetails && (
-                              <p className="text-xs text-blue-600">{providerDetails.business_name}</p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant={user.status === 'verified' ? 'default' : user.status === 'suspended' ? 'destructive' : 'secondary'}>
-                            {user.status}
-                          </Badge>
-                          <div className="flex items-center space-x-2">
-                            <Switch
-                              checked={user.status === 'verified'}
-                              onCheckedChange={() => toggleUserStatus(user.id, user.status)}
-                            />
-                            {user.status === 'verified' ? (
-                              <CheckCircle className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <Ban className="h-4 w-4 text-red-500" />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-gray-600">Total Subscriptions</p>
+                    <p className="text-2xl font-bold text-medical-blue">{stats.totalSubscriptions}</p>
+                  </div>
+                  <div className="p-4 bg-green-50 rounded-lg">
+                    <p className="text-sm text-gray-600">Active</p>
+                    <p className="text-2xl font-bold text-green-600">{stats.activeSubscriptions}</p>
+                  </div>
+                  <div className="p-4 bg-purple-50 rounded-lg">
+                    <p className="text-sm text-gray-600">Monthly Revenue</p>
+                    <p className="text-2xl font-bold text-purple-600">LKR {stats.monthlyRecurringRevenue.toLocaleString()}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {profile?.role === 'admin' && (
-            <TabsContent value="settings">
-              <Card className="glass-card shadow-blue-md">
+          {/* Users Tab */}
+          <TabsContent value="users">
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle>Users & Verification</CardTitle>
+                <CardDescription>Manage user accounts and verification status</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {users.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{user.full_name}</p>
+                        <p className="text-sm text-gray-500">{user.email}</p>
+                        <div className="flex gap-2 mt-1">
+                          <Badge variant={user.role === 'admin' ? 'default' : 'outline'}>
+                            {user.role}
+                          </Badge>
+                          <Badge variant={user.status === 'verified' ? 'secondary' : 'destructive'}>
+                            {user.status}
+                          </Badge>
+                        </div>
+                      </div>
+                      {(user.role === 'pharmacy' || user.role === 'laboratory') && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleUserStatus(user.id, user.status)}
+                          className="ml-2"
+                        >
+                          {user.status === 'verified' ? 'Block' : 'Approve'}
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Configuration Tab */}
+          {isDeveloperAdmin && (
+            <TabsContent value="config">
+              <Card className="border-0 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="h-5 w-5" />
-                    API Configuration
-                  </CardTitle>
-                  <CardDescription>
-                    Manage system-wide API keys and integrations
-                  </CardDescription>
+                  <CardTitle>Site Configuration</CardTitle>
+                  <CardDescription>Manage global site settings</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <Key className="h-4 w-4" />
-                      API Keys & Integrations
-                    </h3>
-                    
-                    <div className="grid gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="mapbox_token">Mapbox Public Token</Label>
-                        <Input
-                          id="mapbox_token"
-                          type="text"
-                          value={siteConfig.mapbox_token || ''}
-                          onChange={(e) => handleConfigChange('mapbox_token', e.target.value)}
-                          placeholder="pk.eyJ1Ijoi..."
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          <strong>Required:</strong> Get your Mapbox public token from{' '}
-                          <a 
-                            href="https://account.mapbox.com/access-tokens/" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-medical-blue hover:underline"
-                          >
-                            Mapbox Access Tokens
-                          </a>
-                          . Use the "Default public token" or create a new public token with default scopes.
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="gemini_api_key">Gemini AI API Key</Label>
-                        <Input
-                          id="gemini_api_key"
-                          type="password"
-                          value={siteConfig.gemini_api_key || ''}
-                          onChange={(e) => handleConfigChange('gemini_api_key', e.target.value)}
-                          placeholder="Enter Google Gemini API key"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Required for prescription analysis and drug information
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="lankaqr_api_key">LankaQR API Key</Label>
-                        <Input
-                          id="lankaqr_api_key"
-                          type="password"
-                          value={siteConfig.lankaqr_api_key || ''}
-                          onChange={(e) => handleConfigChange('lankaqr_api_key', e.target.value)}
-                          placeholder="Enter LankaQR API key for payments"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Required for commission payout processing via QR payments
-                        </p>
-                      </div>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="app_name">App Name</Label>
+                      <Input
+                        id="app_name"
+                        value={siteConfig['app_name'] || ''}
+                        onChange={(e) => handleConfigChange('app_name', e.target.value)}
+                        placeholder="DigiFarmacy"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="contact_email">Contact Email</Label>
+                      <Input
+                        id="contact_email"
+                        type="email"
+                        value={siteConfig['contact_email'] || ''}
+                        onChange={(e) => handleConfigChange('contact_email', e.target.value)}
+                        placeholder="support@digifarmacy.com"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="support_phone">Support Phone</Label>
+                      <Input
+                        id="support_phone"
+                        value={siteConfig['support_phone'] || ''}
+                        onChange={(e) => handleConfigChange('support_phone', e.target.value)}
+                        placeholder="+94 11 234 5678"
+                      />
                     </div>
                   </div>
 
-                  <div className="pt-4">
-                    <Button onClick={updateSiteConfig} disabled={saving}>
-                      {saving ? 'Saving...' : 'Save Configuration'}
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={updateSiteConfig}
+                    disabled={saving}
+                    className="w-full bg-medical-blue hover:bg-medical-blue/90"
+                  >
+                    {saving ? 'Saving...' : 'Save Configuration'}
+                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -535,3 +415,5 @@ export const AdminDashboard: React.FC = () => {
     </div>
   );
 };
+
+export default AdminDashboard;

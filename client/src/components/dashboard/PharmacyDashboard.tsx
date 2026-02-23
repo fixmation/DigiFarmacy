@@ -4,22 +4,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DollarSign, FileText, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
+import { CreditCard, Calendar, AlertCircle, CheckCircle, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/useAuth';
 import { toast } from 'sonner';
 import { PharmacyVerification } from './PharmacyVerification';
 import { PharmacyProducts } from './PharmacyProducts';
-import { QRPaymentManager } from './QRPaymentManager';
-import { PayoutRequests } from './PayoutRequests';
 
-interface PrescriptionUpload {
+interface Subscription {
   id: string;
-  customer_name: string;
-  customer_email: string;
-  upload_date: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  commission_amount?: number;
+  status: 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'CANCELLED';
+  product_id: string;
+  monthly_price: number;
+  purchase_date: string;
+  expiry_date: string;
 }
 
 interface PharmacyDetails {
@@ -34,115 +32,78 @@ interface PharmacyDetails {
 
 export const PharmacyDashboard: React.FC = () => {
   const { profile } = useAuth();
-  const [prescriptionUploads, setPrescriptionUploads] = useState<PrescriptionUpload[]>([]);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [pharmacyDetails, setPharmacyDetails] = useState<PharmacyDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchPharmacyDetails();
-  }, []);
-
-  useEffect(() => {
-    if (pharmacyDetails?.id) {
-      fetchPrescriptionUploads();
+    if (profile?.id) {
+      fetchPharmacyData();
     }
-  }, [pharmacyDetails?.id]);
+  }, [profile?.id]);
 
-  const fetchPharmacyDetails = async () => {
+  const fetchPharmacyData = async () => {
     if (!profile?.id) return;
 
     try {
-      const { data, error } = await supabase
+      // Fetch pharmacy details
+      const { data: pharmacy, error: pharmacyError } = await (supabase
         .from('pharmacy_details')
         .select('*')
         .eq('user_id', profile.id)
-        .single();
+        .single() as any);
 
-      if (error) {
-        console.error('Error fetching pharmacy details:', error);
-        toast.error('Failed to load pharmacy details');
-      } else {
-        setPharmacyDetails(data);
+      if (pharmacyError && (pharmacyError as any).code !== 'PGRST116') {
+        console.error('Error fetching pharmacy details:', pharmacyError);
+      } else if (pharmacy) {
+        setPharmacyDetails(pharmacy);
+      }
+
+      // Fetch subscription info
+      const { data: subscriptions, error: subscriptionError } = await (supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', profile.id)
+        .order('purchase_date', { ascending: false }) as any);
+
+      if (subscriptionError && (subscriptionError as any).code !== 'PGRST116') {
+        console.error('Error fetching subscription:', subscriptionError);
+      } else if (subscriptions && subscriptions.length > 0) {
+        setSubscription(subscriptions[0]);
       }
     } catch (error) {
-      console.error('Error fetching pharmacy details:', error);
-      toast.error('Failed to load pharmacy details');
+      console.error('Error fetching pharmacy data:', error);
+      toast.error('Failed to load pharmacy information');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchPrescriptionUploads = async () => {
-    if (!pharmacyDetails?.id) return;
+  const handleVerificationComplete = () => {
+    fetchPharmacyData();
+  };
 
-    try {
-      // Fetch commission transactions for this pharmacy
-      const { data: transactions, error: transactionError } = await supabase
-        .from('commission_transactions')
-        .select('*')
-        .eq('pharmacy_id', pharmacyDetails.id)
-        .order('transaction_date', { ascending: false });
-
-      if (transactionError) {
-        console.error('Error fetching transactions:', transactionError);
-        setPrescriptionUploads([]);
-        return;
-      }
-
-      // Fetch user profiles separately to get customer names
-      const userIds = transactions?.map(t => t.prescription_id).filter(Boolean) || [];
-      let profiles: any[] = [];
-      
-      if (userIds.length > 0) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .in('id', userIds);
-        
-        if (!profileError) {
-          profiles = profileData || [];
-        }
-      }
-
-      // Transform commission transactions to look like prescription uploads
-      const transformedData = (transactions || []).map(transaction => {
-        const customerProfile = profiles.find(p => p.id === transaction.prescription_id);
-        
-        return {
-          id: transaction.id,
-          customer_name: customerProfile?.full_name || 'Unknown Customer',
-          customer_email: customerProfile?.email || '',
-          upload_date: transaction.transaction_date || new Date().toISOString(),
-          status: (transaction.status || 'completed') as 'pending' | 'processing' | 'completed' | 'failed',
-          commission_amount: transaction.amount_lkr
-        };
-      });
-      
-      setPrescriptionUploads(transformedData);
-    } catch (error) {
-      console.error('Error fetching prescription uploads:', error);
+  const getSubscriptionStatusColor = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return 'default';
+      case 'PAUSED':
+        return 'secondary';
+      case 'EXPIRED':
+        return 'destructive';
+      case 'CANCELLED':
+        return 'outline';
+      default:
+        return 'secondary';
     }
   };
 
-  const updatePrescriptionStatus = async (uploadId: string, newStatus: 'pending' | 'processing' | 'completed' | 'failed') => {
-    try {
-      const { error } = await supabase
-        .from('commission_transactions')
-        .update({ status: newStatus })
-        .eq('id', uploadId);
-
-      if (error) throw error;
-
-      toast.success('Prescription status updated successfully');
-      fetchPrescriptionUploads();
-    } catch (error) {
-      console.error('Error updating prescription status:', error);
-      toast.error('Failed to update prescription status');
-    }
-  };
-
-  const handleVerificationComplete = async () => {
-    await fetchPharmacyDetails();
+  const getDaysUntilExpiry = (expiryDate: string) => {
+    const expiry = new Date(expiryDate);
+    const today = new Date();
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
   if (loading) {
@@ -156,8 +117,6 @@ export const PharmacyDashboard: React.FC = () => {
     );
   }
 
-  const totalEarnings = prescriptionUploads.reduce((sum, upload) => sum + (upload.commission_amount || 0), 0);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-medical-slate via-medical-mint to-white p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
@@ -167,135 +126,156 @@ export const PharmacyDashboard: React.FC = () => {
             Pharmacy Dashboard
           </h1>
           <p className="text-base md:text-lg text-muted-foreground">
-            Manage your pharmacy operations and prescription uploads
+            Manage your subscription and pharmacy operations
           </p>
         </div>
 
+        {/* Subscription Status Card */}
+        {subscription ? (
+          <Card className="glass-card shadow-blue-md border-2 border-blue-200">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Active Subscription
+                  </CardTitle>
+                  <CardDescription>Your current subscription status</CardDescription>
+                </div>
+                <Badge variant={getSubscriptionStatusColor(subscription.status)} className="text-base px-3 py-1">
+                  {subscription.status}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Plan</p>
+                  <p className="text-lg font-semibold capitalize">{subscription.product_id.replace(/-/g, ' ')}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Monthly Cost</p>
+                  <p className="text-lg font-semibold">LKR {subscription.monthly_price.toLocaleString()}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Expires In</p>
+                  <p className="text-lg font-semibold">
+                    {getDaysUntilExpiry(subscription.expiry_date)} days
+                  </p>
+                </div>
+              </div>
+              
+              <div className="border-t pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Purchase Date</p>
+                    <p className="font-medium">{new Date(subscription.purchase_date).toLocaleDateString()}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Expiry Date</p>
+                    <p className="font-medium">{new Date(subscription.expiry_date).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="glass-card shadow-blue-md border-2 border-amber-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-600">
+                <AlertCircle className="h-5 w-5" />
+                No Active Subscription
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                You don't have an active subscription. Please visit Google Play to subscribe to our service.
+              </p>
+              <Button className="bg-medical-blue hover:bg-medical-blue/90">
+                Subscribe Now
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          <Card className="glass-card shadow-blue-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Uploads</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{prescriptionUploads.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Prescription uploads
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card shadow-blue-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">This Month</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {prescriptionUploads.filter(upload => {
-                  const uploadDate = new Date(upload.upload_date);
-                  const now = new Date();
-                  return uploadDate.getMonth() === now.getMonth() && 
-                         uploadDate.getFullYear() === now.getFullYear();
-                }).length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Monthly uploads
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card shadow-blue-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Commission Earned</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                LKR {totalEarnings.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Total earnings
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card shadow-blue-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Status</CardTitle>
-              {profile?.status === 'verified' ? (
+        {subscription && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <Card className="glass-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Subscription Status</CardTitle>
                 <CheckCircle className="h-4 w-4 text-green-500" />
-              ) : (
-                <AlertCircle className="h-4 w-4 text-yellow-500" />
-              )}
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-bold capitalize">{profile?.status}</div>
-              <p className="text-xs text-muted-foreground">
-                Account status
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold capitalize">{subscription.status}</div>
+              </CardContent>
+            </Card>
 
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="uploads" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
-            <TabsTrigger value="uploads" className="text-xs md:text-sm">Uploads</TabsTrigger>
-            <TabsTrigger value="verification" className="text-xs md:text-sm">Verification</TabsTrigger>
-            <TabsTrigger value="products" className="text-xs md:text-sm">Products</TabsTrigger>
-            <TabsTrigger value="payments" className="text-xs md:text-sm">Payments</TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs md:text-sm">Settings</TabsTrigger>
+            <Card className="glass-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Verification</CardTitle>
+                {profile?.status === 'verified' ? (
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-yellow-500" />
+                )}
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm font-semibold capitalize">{profile?.status}</div>
+              </CardContent>
+            </Card>
+
+            <Card className="glass-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Renewal</CardTitle>
+                <Calendar className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm font-semibold">{getDaysUntilExpiry(subscription.expiry_date)} days</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Tabs */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="verification">Verification</TabsTrigger>
+            <TabsTrigger value="products">Products</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="uploads">
-            <Card className="glass-card shadow-blue-md">
+          <TabsContent value="overview">
+            <Card className="glass-card">
               <CardHeader>
-                <CardTitle>Prescription Uploads</CardTitle>
+                <CardTitle>Subscription Overview</CardTitle>
                 <CardDescription>
-                  Manage prescription uploads from customers
+                  {subscription 
+                    ? 'Your current subscription details and status'
+                    : 'Subscribe to access pharmacy features'
+                  }
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {prescriptionUploads.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p>No prescription uploads yet.</p>
-                    </div>
-                  ) : (
-                    prescriptionUploads.map((upload) => (
-                      <div key={upload.id} className="flex items-center justify-between p-4 border rounded-lg shadow-blue-sm">
-                        <div className="space-y-1">
-                          <p className="font-medium">{upload.customer_name}</p>
-                          <p className="text-sm text-muted-foreground">{upload.customer_email}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(upload.upload_date).toLocaleDateString()} • 
-                            LKR {upload.commission_amount?.toLocaleString() || '0'}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant={
-                            upload.status === 'completed' ? 'default' : 
-                            upload.status === 'pending' ? 'secondary' : 'outline'
-                          }>
-                            {upload.status}
-                          </Badge>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updatePrescriptionStatus(upload.id, 
-                              upload.status === 'pending' ? 'completed' : 'pending'
-                            )}
-                          >
-                            {upload.status === 'pending' ? 'Mark Complete' : 'Mark Pending'}
-                          </Button>
-                        </div>
+                {subscription ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-muted-foreground mb-1">Monthly Subscription Cost</p>
+                        <p className="text-3xl font-bold text-blue-600">LKR {subscription.monthly_price.toLocaleString()}</p>
                       </div>
-                    ))
-                  )}
-                </div>
+                      <div className="p-4 bg-green-50 rounded-lg">
+                        <p className="text-sm text-muted-foreground mb-1">Days Remaining</p>
+                        <p className="text-3xl font-bold text-green-600">{getDaysUntilExpiry(subscription.expiry_date)}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <CreditCard className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p className="text-muted-foreground">No active subscription</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -307,7 +287,7 @@ export const PharmacyDashboard: React.FC = () => {
                 onUpdate={handleVerificationComplete}
               />
             ) : (
-              <Card className="glass-card shadow-blue-md">
+              <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <CheckCircle className="h-5 w-5 text-green-500" />
@@ -316,7 +296,7 @@ export const PharmacyDashboard: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    Your pharmacy has been successfully verified and is now active on the platform.
+                    Your pharmacy has been successfully verified and is active on the platform.
                   </p>
                 </CardContent>
               </Card>
@@ -325,30 +305,6 @@ export const PharmacyDashboard: React.FC = () => {
 
           <TabsContent value="products">
             <PharmacyProducts />
-          </TabsContent>
-
-          <TabsContent value="payments">
-            {pharmacyDetails && (
-              <>
-                <QRPaymentManager 
-                  serviceProviderId={pharmacyDetails.id}
-                  serviceProviderType="pharmacy"
-                />
-                <PayoutRequests 
-                  pharmacyId={pharmacyDetails.id}
-                  availableBalance={totalEarnings}
-                />
-              </>
-            )}
-          </TabsContent>
-
-          <TabsContent value="settings">
-            {pharmacyDetails && (
-              <PharmacyVerification 
-                pharmacyDetails={pharmacyDetails}
-                onUpdate={handleVerificationComplete}
-              />
-            )}
           </TabsContent>
         </Tabs>
       </div>

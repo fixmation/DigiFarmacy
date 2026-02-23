@@ -14,7 +14,7 @@ import {
   Phone, 
   Mail, 
   Clock,
-  DollarSign,
+  CreditCard,
   CheckCircle,
   AlertCircle,
   Home
@@ -22,6 +22,15 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/useAuth';
 import { toast } from 'sonner';
+
+interface Subscription {
+  id: string;
+  status: 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'CANCELLED';
+  product_id: string;
+  monthly_price: number;
+  purchase_date: string;
+  expiry_date: string;
+}
 
 interface LaboratoryDetails {
   id: string;
@@ -54,108 +63,105 @@ interface Booking {
 export const LaboratoryDashboard: React.FC = () => {
   const { user, profile } = useAuth();
   const [labDetails, setLabDetails] = useState<LaboratoryDetails | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [totalEarnings, setTotalEarnings] = useState(0);
   const [pendingBookings, setPendingBookings] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user && profile?.role === 'laboratory') {
-      fetchLaboratoryDetails();
-      fetchBookings();
-      fetchEarningsData();
+      fetchLaboratoryData();
     }
   }, [user, profile]);
 
-  const fetchLaboratoryDetails = async () => {
+  const fetchLaboratoryData = async () => {
     try {
-      const { data: labData, error: labError } = await supabase
+      // Fetch lab details
+      const { data: labData, error: labError } = await (supabase
         .from('laboratory_details')
         .select('*')
         .eq('user_id', user?.id)
-        .single();
+        .single() as any);
 
-      if (labError) {
+      if (labError && (labError as any).code !== 'PGRST116') {
         console.error('Error fetching laboratory details:', labError);
       } else if (labData) {
         setLabDetails({
           ...labData,
           status: profile?.status || 'pending'
         });
-      }
-    } catch (error) {
-      console.error('Error fetching laboratory details:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const fetchBookings = async () => {
-    try {
-      // First get laboratory ID
-      const { data: labData } = await supabase
-        .from('laboratory_details')
-        .select('id')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (labData) {
-        const { data: bookingsData } = await supabase
+        // Fetch bookings for this lab
+        const { data: bookingsData } = await (supabase
           .from('lab_bookings')
           .select('*')
           .eq('laboratory_id', labData.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false }) as any);
 
         if (bookingsData) {
           setBookings(bookingsData);
           setPendingBookings(bookingsData.filter((b: any) => b.status === 'pending').length);
         }
       }
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
-    }
-  };
 
-  const fetchEarningsData = async () => {
-    try {
-      const { data: labData } = await supabase
-        .from('laboratory_details')
-        .select('id')
+      // Fetch subscription for this laboratory user
+      const { data: subscriptionData, error: subscriptionError } = await (supabase
+        .from('subscriptions')
+        .select('*')
         .eq('user_id', user?.id)
-        .single();
+        .order('purchase_date', { ascending: false }) as any);
 
-      if (labData) {
-        const { data: earningsData } = await supabase
-          .from('commission_transactions')
-          .select('amount_lkr')
-          .eq('laboratory_id', labData.id)
-          .eq('status', 'completed');
-
-        const total = earningsData?.reduce((sum, transaction) => 
-          sum + Number(transaction.amount_lkr), 0) || 0;
-        
-        setTotalEarnings(total);
+      if (subscriptionError && (subscriptionError as any).code !== 'PGRST116') {
+        console.error('Error fetching subscription:', subscriptionError);
+      } else if (subscriptionData && subscriptionData.length > 0) {
+        setSubscription(subscriptionData[0]);
       }
     } catch (error) {
-      console.error('Error fetching earnings data:', error);
+      console.error('Error fetching laboratory data:', error);
+      toast.error('Failed to load laboratory information');
+    } finally {
+      setLoading(false);
     }
   };
 
   const updateBookingStatus = async (bookingId: string, status: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('lab_bookings')
         .update({ status })
-        .eq('id', bookingId);
+        .eq('id', bookingId) as any);
 
       if (error) throw error;
 
-      toast.success(`Booking ${status} successfully`);
-      fetchBookings();
+      toast.success(`Booking status updated to ${status}`);
+      fetchLaboratoryData();
     } catch (error) {
       console.error('Error updating booking status:', error);
       toast.error('Failed to update booking status');
     }
+  };
+
+  const getSubscriptionStatusColor = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return 'default';
+      case 'PAUSED':
+        return 'secondary';
+      case 'EXPIRED':
+        return 'destructive';
+      case 'CANCELLED':
+        return 'outline';
+      default:
+        return 'secondary';
+    }
+  };
+
+  const getDaysUntilExpiry = (expiryDate: string) => {
+    const expiry = new Date(expiryDate);
+    const today = new Date();
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
   if (loading) {
@@ -191,17 +197,72 @@ export const LaboratoryDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-medical-slate via-medical-mint to-white p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-medical-slate via-medical-mint to-white p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-medical-blue to-medical-green bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-medical-blue to-medical-green bg-clip-text text-transparent">
             Laboratory Dashboard
           </h1>
           <p className="text-lg text-muted-foreground">
-            Manage your laboratory profile, bookings, and home visits
+            Manage your laboratory profile and subscription
           </p>
         </div>
+
+        {/* Subscription Status Card */}
+        {subscription ? (
+          <Card className="glass-card shadow-blue-md border-2 border-blue-200">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Active Subscription
+                  </CardTitle>
+                  <CardDescription>Your current subscription status</CardDescription>
+                </div>
+                <Badge variant={getSubscriptionStatusColor(subscription.status)} className="text-base px-3 py-1">
+                  {subscription.status}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Plan</p>
+                  <p className="text-lg font-semibold capitalize">{subscription.product_id.replace(/-/g, ' ')}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Monthly Cost</p>
+                  <p className="text-lg font-semibold">LKR {subscription.monthly_price.toLocaleString()}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Expires In</p>
+                  <p className="text-lg font-semibold">
+                    {getDaysUntilExpiry(subscription.expiry_date)} days
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="glass-card shadow-blue-md border-2 border-amber-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-600">
+                <AlertCircle className="h-5 w-5" />
+                No Active Subscription
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                You don't have an active subscription. Please visit Google Play to subscribe.
+              </p>
+              <Button className="bg-medical-blue hover:bg-medical-blue/90">
+                Subscribe Now
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Overview */}
         <div className="grid md:grid-cols-4 gap-6">
@@ -229,18 +290,23 @@ export const LaboratoryDashboard: React.FC = () => {
 
           <Card className="glass-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Subscription Status</CardTitle>
+              {subscription && subscription.status === 'ACTIVE' ? (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              ) : (
+                <AlertCircle className="h-4 w-4 text-yellow-500" />
+              )}
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">LKR {totalEarnings.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">Commission earned</p>
+              <div className="text-sm font-semibold">
+                {subscription ? subscription.status : 'Inactive'}
+              </div>
             </CardContent>
           </Card>
 
           <Card className="glass-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Status</CardTitle>
+              <CardTitle className="text-sm font-medium">Verification</CardTitle>
               <FlaskConical className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -463,3 +529,5 @@ export const LaboratoryDashboard: React.FC = () => {
     </div>
   );
 };
+
+export default LaboratoryDashboard;
