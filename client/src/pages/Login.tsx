@@ -1,30 +1,31 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/components/auth/useAuth';
+import { AuthModal } from '@/components/auth/AuthModal';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, profile, loading } = useAuth();
 
+  // Where to go after successful login
+  const redirectTo = searchParams.get('redirect') || '/checkout';
+
   useEffect(() => {
-    // If user is already authenticated or authentication is still loading, do nothing
+    // Wait for auth check; if already signed in, go to redirect target
     if (loading) return;
 
     if (user && profile) {
-      console.log("Login Page: User authenticated, navigating to /.");
-      navigate('/');
-    } else {
-      // If not authenticated, redirect to the landing page to allow them to sign in from there
-      console.log("Login Page: User not authenticated, navigating to / to show AuthModal.");
-      navigate('/');
+      navigate(redirectTo);
     }
-  }, [user, profile, loading, navigate]);
+  }, [user, profile, loading, navigate, redirectTo]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-[#7aebcf]">
-      {/* This page should ideally not be seen if the routing is correct. */}
-      {/* If seen, it implies a redirect loop or an unhandled state. */}
-      <p>Redirecting...</p>
+      <AuthModal
+        isOpen={true}
+        onClose={() => navigate('/')}
+      />
     </div>
   );
 };
