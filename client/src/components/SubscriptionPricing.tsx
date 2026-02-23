@@ -1,15 +1,18 @@
 /**
  * @fileoverview Subscription Pricing Cards for Pharmacy & Laboratory businesses
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Building2, Beaker, ArrowRight } from 'lucide-react';
+import { Check, Building2, Beaker, ArrowRight, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/components/auth/useAuth';
 
 const SubscriptionPricing: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   const subscriptions = [
     {
@@ -63,6 +66,20 @@ const SubscriptionPricing: React.FC = () => {
       highlighted: false
     }
   ];
+
+  /**
+   * Handle subscribe click
+   */
+  const handleSubscribe = (planId: string, businessType: string) => {
+    if (!user) {
+      // Redirect to login if not authenticated
+      navigate('/login?redirect=/pricing');
+      return;
+    }
+
+    // Redirect to checkout with plan parameters
+    navigate(`/checkout?businessType=${businessType}&period=monthly`);
+  };
 
   return (
     <div className="w-full py-8 md:py-16 px-4 sm:px-6 lg:px-8 bg-transparent">
@@ -153,15 +170,25 @@ const SubscriptionPricing: React.FC = () => {
 
                   {/* CTA Button */}
                   <Button
-                    onClick={() => navigate('/login')}
+                    onClick={() => handleSubscribe(sub.id, sub.type.toLowerCase())}
+                    disabled={loadingPlan === sub.id}
                     className={`w-full py-2 text-base font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 ${
                       sub.highlighted
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-600 shadow-lg hover:shadow-xl'
-                        : 'bg-gradient-to-r from-green-600 to-green-500 text-white hover:from-green-700 hover:to-green-600 shadow-lg hover:shadow-xl'
+                        ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-600 shadow-lg hover:shadow-xl disabled:opacity-70'
+                        : 'bg-gradient-to-r from-green-600 to-green-500 text-white hover:from-green-700 hover:to-green-600 shadow-lg hover:shadow-xl disabled:opacity-70'
                     }`}
                   >
-                    {sub.buttonText}
-                    <ArrowRight className="h-4 w-4" />
+                    {loadingPlan === sub.id ? (
+                      <>
+                        <Loader className="h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        {sub.buttonText}
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
                   </Button>
 
                   {/* Footer Note */}

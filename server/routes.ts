@@ -5,6 +5,7 @@ import { z } from "zod";
 import { insertLabBookingSchema, insertPharmacyDetailsSchema, insertLaboratoryDetailsSchema, insertProfileSchema } from "@shared/schema";
 import drugRoutes from "./routes/drugs";
 import subscriptionRoutes from "./routes/subscriptions";
+import checkoutRoutes from "./routes/checkout";
 import emailVerificationRoutes from "./routes/email-verification";
 import passport from "passport";
 import bcrypt from "bcrypt";
@@ -588,6 +589,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Subscription routes for Google Play integration
   app.use("/api/subscriptions", subscriptionRoutes);
+
+  // Checkout routes for web payment processing
+  app.use("/api/checkout", checkoutRoutes);
 
   // Email verification routes
   app.use(emailVerificationRoutes);
