@@ -87,7 +87,7 @@ const App = () => (
               <Route path="/lab-booking" element={<RoleMiddleware><LabBooking /></RoleMiddleware>} />
               <Route path="/prescription-scanner" element={<RoleMiddleware><PrescriptionScanner /></RoleMiddleware>} />
               <Route path="/voice-assistant" element={<RoleMiddleware><VoiceAssistant /></RoleMiddleware>} />
-              <Route path="/workflow" element={<RoleMiddleware><Workflow /></RoleMiddleware>} />
+              <Route path="/workflow" element={<Workflow />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
         </BrowserRouter>
